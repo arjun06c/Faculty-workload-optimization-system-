@@ -27,15 +27,20 @@ const AcademicsDashboard = () => {
 
             const facultyRes = await api.get('/admin/faculty');
             setFacultyList(facultyRes.data);
+        } catch (err) {
+            console.error('Fetching admin data failed:', err);
+        }
 
-            if (view === 'requests') {
+        if (view === 'requests') {
+            try {
                 const requestsRes = await api.get('/academics/workload-requests');
                 setRequests(requestsRes.data);
+            } catch (err) {
+                console.error('Fetching requests failed:', err);
             }
-        } catch (err) {
-            console.error(err);
         }
     };
+
 
     const handleAddEntry = async (e) => {
         e.preventDefault();

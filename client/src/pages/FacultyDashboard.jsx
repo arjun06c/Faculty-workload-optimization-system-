@@ -7,7 +7,8 @@ const FacultyDashboard = () => {
     const [facultyProfile, setFacultyProfile] = useState(null);
     const [timetable, setTimetable] = useState([]);
     const [requests, setRequests] = useState([]);
-    const [newRequest, setNewRequest] = useState({ reason: '', affectedPeriods: '' });
+    const [newRequest, setNewRequest] = useState({ reason: '', affectedPeriods: [] });
+
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
@@ -39,8 +40,9 @@ const FacultyDashboard = () => {
         e.preventDefault();
         try {
             await api.post('/faculty/workload-request', newRequest);
-            setNewRequest({ reason: '', affectedPeriods: '' });
+            setNewRequest({ reason: '', affectedPeriods: [] });
             fetchFacultyData();
+
             alert('Request submitted successfully');
         } catch (err) {
             alert('Error submitting request');

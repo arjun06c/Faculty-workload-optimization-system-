@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 
 const AcademicsDashboard = () => {
     const { logout } = useAuth();
+    const navigate = useNavigate();
     const [view, setView] = useState('timetable'); // 'timetable' | 'requests'
 
     // Timetable State
@@ -15,6 +17,7 @@ const AcademicsDashboard = () => {
 
     // Workload Requests State
     const [requests, setRequests] = useState([]);
+    const [timetable, setTimetable] = useState([]);
 
     useEffect(() => {
         fetchData();
@@ -29,6 +32,15 @@ const AcademicsDashboard = () => {
             setFacultyList(facultyRes.data);
         } catch (err) {
             console.error('Fetching admin data failed:', err);
+        }
+
+        if (view === 'timetable') {
+            try {
+                const timetableRes = await api.get('/academics/timetable');
+                setTimetable(timetableRes.data);
+            } catch (err) {
+                console.error('Fetching timetable failed:', err);
+            }
         }
 
         if (view === 'requests') {
@@ -166,33 +178,94 @@ const AcademicsDashboard = () => {
                         </form>
                     </div>
 
-                    <div className="card" style={{ padding: '2rem', height: 'fit-content' }}>
-                        <h2 style={{ marginBottom: '1.5rem', color: '#1e293b' }}>Faculty Availability Monitor</h2>
-                        <ul style={{ listStyle: 'none', padding: 0 }}>
-                            {facultyList.filter(f => f.department?._id === newEntry.department).map(f => {
-                                const percentage = (f.currentHours / f.maxHours) * 100;
-                                let color = '#10b981';
-                                if (percentage >= 100) color = '#ef4444';
-                                else if (percentage >= 80) color = '#f59e0b';
+                    <div className="card" style={{ padding: '2rem', height: 'fit-content', position: 'sticky', top: '2rem' }}>
+                        <h2 style={{ marginBottom: '1.5rem', color: '#1e293b', fontSize: '1.3rem', fontWeight: '600' }}>📊 Faculty Availability Monitor</h2>
+                        {newEntry.department ? (
+                            <div style={{ maxHeight: '500px', overflowY: 'auto', paddingRight: '0.5rem' }}>
+                                {facultyList.filter(f => f.department?._id === newEntry.department).map(f => {
+                                    const percentage = (f.currentHours / f.maxHours) * 100;
+                                    let color = '#10b981';
+                                    let bgColor = '#ecfdf5';
+                                    let statusText = 'Available';
 
-                                return (
-                                    <li key={f._id} style={{ marginBottom: '1.25rem', padding: '1rem', background: '#f8fafc', borderRadius: '8px' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                            <span style={{ fontWeight: '600', color: '#334155' }}>{f.name}</span>
-                                            <span style={{ fontSize: '0.9rem' }}>
-                                                <span style={{ color }}>{f.currentHours}h</span> / {f.maxHours}h
-                                            </span>
+                                    if (percentage >= 100) {
+                                        color = '#ef4444';
+                                        bgColor = '#fef2f2';
+                                        statusText = 'Overloaded';
+                                    } else if (percentage >= 80) {
+                                        color = '#f59e0b';
+                                        bgColor = '#fffbeb';
+                                        statusText = 'Near Capacity';
+                                    }
+
+                                    return (
+                                        <div
+                                            key={f._id}
+                                            onClick={() => navigate(`/academics/faculty/${f._id}`)}
+                                            style={{
+                                                marginBottom: '1rem',
+                                                padding: '1.25rem',
+                                                background: 'white',
+                                                borderRadius: '10px',
+                                                border: '1px solid #e2e8f0',
+                                                boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                                                transition: 'all 0.2s ease',
+                                                cursor: 'pointer'
+                                            }}
+                                            onMouseOver={(e) => {
+                                                e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+                                                e.currentTarget.style.transform = 'translateY(-2px)';
+                                            }}
+                                            onMouseOut={(e) => {
+                                                e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)';
+                                                e.currentTarget.style.transform = 'translateY(0)';
+                                            }}
+                                        >
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                                                <span style={{ fontWeight: '600', color: '#1e293b', fontSize: '0.95rem' }}>{f.name}</span>
+                                                <span style={{
+                                                    padding: '0.25rem 0.75rem',
+                                                    borderRadius: '20px',
+                                                    fontSize: '0.75rem',
+                                                    fontWeight: '600',
+                                                    color: color,
+                                                    background: bgColor
+                                                }}>
+                                                    {statusText}
+                                                </span>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                                <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Workload</span>
+                                                <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#334155' }}>
+                                                    <span style={{ color }}>{f.currentHours}h</span> / {f.maxHours}h
+                                                </span>
+                                            </div>
+                                            <div style={{ width: '100%', height: '8px', background: '#f1f5f9', borderRadius: '10px', overflow: 'hidden' }}>
+                                                <div style={{
+                                                    width: `${Math.min(percentage, 100)}%`,
+                                                    height: '100%',
+                                                    background: `linear-gradient(to right, ${color}, ${color}dd)`,
+                                                    transition: 'width 0.3s ease',
+                                                    borderRadius: '10px'
+                                                }}></div>
+                                            </div>
                                         </div>
-                                        <div style={{ width: '100%', height: '10px', background: '#e2e8f0', borderRadius: '5px', overflow: 'hidden' }}>
-                                            <div style={{ width: `${Math.min(percentage, 100)}%`, height: '100%', background: color, transition: 'width 0.3s ease' }}></div>
-                                        </div>
-                                    </li>
-                                );
-                            })}
-                            {(!newEntry.department && facultyList.length === 0) && (
-                                <p style={{ textAlign: 'center', color: '#94a3b8', marginTop: '2rem' }}>Select a department to view faculty load</p>
-                            )}
-                        </ul>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div style={{
+                                textAlign: 'center',
+                                padding: '3rem 1rem',
+                                color: '#94a3b8',
+                                background: '#f8fafc',
+                                borderRadius: '8px',
+                                border: '2px dashed #e2e8f0'
+                            }}>
+                                <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📂</div>
+                                <p style={{ margin: 0, fontSize: '0.9rem' }}>Select a department to view faculty workload</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

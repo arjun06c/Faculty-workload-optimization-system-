@@ -35,7 +35,42 @@ exports.getDepartments = async (req, res) => {
     }
 };
 
+// @desc    Update a department
+// @route   PUT /api/admin/departments/:id
+// @access  Admin
+exports.updateDepartment = async (req, res) => {
+    const { name } = req.body;
+    try {
+        let department = await Department.findById(req.params.id);
+        if (!department) return res.status(404).json({ msg: 'Department not found' });
+
+        department.name = name || department.name;
+        await department.save();
+        res.json(department);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+};
+
+// @desc    Delete a department
+// @route   DELETE /api/admin/departments/:id
+// @access  Admin
+exports.deleteDepartment = async (req, res) => {
+    try {
+        const department = await Department.findById(req.params.id);
+        if (!department) return res.status(404).json({ msg: 'Department not found' });
+
+        await Department.findByIdAndDelete(req.params.id);
+        res.json({ msg: 'Department deleted' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+};
+
 // @desc    Add a new faculty member (and create User)
+
 // @route   POST /api/admin/faculty
 // @access  Admin
 exports.addFaculty = async (req, res) => {
@@ -155,7 +190,7 @@ exports.getFacultyByDepartment = async (req, res) => {
 // @route   PUT /api/admin/faculty/:id
 // @access  Admin
 exports.updateFaculty = async (req, res) => {
-    const { name, department, designation, phone, maxHours, skills } = req.body;
+    const { name, email, password, department, designation, phone, maxHours, skills } = req.body;
 
     try {
         let faculty = await Faculty.findById(req.params.id);
@@ -171,9 +206,28 @@ exports.updateFaculty = async (req, res) => {
 
         await faculty.save();
 
-        // Sync department with User model if updated
+        // Update User fields if provided
+        const userUpdate = {};
+        if (email) {
+            // Check if email is already taken by another user
+            const existingUser = await User.findOne({ email });
+            if (existingUser && existingUser._id.toString() !== faculty.userId.toString()) {
+                return res.status(400).json({ msg: 'Email is already in use' });
+            }
+            userUpdate.email = email;
+        }
+
+        if (password) {
+            const salt = await bcrypt.genSalt(10);
+            userUpdate.password = await bcrypt.hash(password, salt);
+        }
+
         if (department) {
-            await User.findByIdAndUpdate(faculty.userId, { department });
+            userUpdate.department = department;
+        }
+
+        if (Object.keys(userUpdate).length > 0) {
+            await User.findByIdAndUpdate(faculty.userId, userUpdate);
         }
 
         res.json(faculty);
@@ -182,6 +236,7 @@ exports.updateFaculty = async (req, res) => {
         res.status(500).send('Server error');
     }
 };
+
 
 // @desc    Delete faculty member and associated user
 // @route   DELETE /api/admin/faculty/:id

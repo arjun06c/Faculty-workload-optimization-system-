@@ -10,15 +10,21 @@ const {
     addAcademicsUser,
     getFacultyByDepartment,
     updateFaculty,
-    deleteFaculty
+    deleteFaculty,
+    updateDepartment,
+    deleteDepartment
 } = require('../controllers/adminController');
+
 
 // All routes here require Admin role
 // middleware: [auth, checkRole(['admin'])]
 
 router.post('/departments', [auth, checkRole(['admin'])], createDepartment);
 router.get('/departments', [auth, checkRole(['admin', 'academics'])], getDepartments);
+router.put('/departments/:id', [auth, checkRole(['admin'])], updateDepartment);
+router.delete('/departments/:id', [auth, checkRole(['admin'])], deleteDepartment);
 router.put('/departments/:id/assign-hod', [auth, checkRole(['admin'])], assignHOD);
+
 router.get('/departments/:deptId/faculty', [auth, checkRole(['admin', 'academics'])], getFacultyByDepartment);
 
 router.post('/faculty', [auth, checkRole(['admin'])], addFaculty);

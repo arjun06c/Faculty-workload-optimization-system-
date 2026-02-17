@@ -12,6 +12,9 @@ const AdminDashboard = () => {
     const [departments, setDepartments] = useState([]);
     const [newDeptName, setNewDeptName] = useState('');
     const [selectedDeptId, setSelectedDeptId] = useState(''); // For filtering faculty
+    const [isEditingDept, setIsEditingDept] = useState(false);
+    const [editingDeptId, setEditingDeptId] = useState(null);
+
 
     // Faculty State
     const [facultyList, setFacultyList] = useState([]);
@@ -70,13 +73,40 @@ const AdminDashboard = () => {
     const handleAddDepartment = async (e) => {
         e.preventDefault();
         try {
-            await api.post('/admin/departments', { name: newDeptName });
+            if (isEditingDept) {
+                await api.put(`/admin/departments/${editingDeptId}`, { name: newDeptName });
+                alert('Department updated successfully!');
+            } else {
+                await api.post('/admin/departments', { name: newDeptName });
+                alert('Department created successfully!');
+            }
             setNewDeptName('');
+            setIsEditingDept(false);
+            setEditingDeptId(null);
             fetchDepartments();
         } catch (err) {
-            alert(err.response?.data?.msg || 'Error adding department');
+            alert(err.response?.data?.msg || 'Error saving department');
         }
     };
+
+    const handleEditDepartment = (dept) => {
+        setIsEditingDept(true);
+        setEditingDeptId(dept._id);
+        setNewDeptName(dept.name);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const handleDeleteDepartment = async (id) => {
+        if (!window.confirm('Are you sure you want to delete this department? This may affect faculty assigned to it.')) return;
+        try {
+            await api.delete(`/admin/departments/${id}`);
+            fetchDepartments();
+            alert('Department deleted.');
+        } catch (err) {
+            alert(err.response?.data?.msg || 'Error deleting department');
+        }
+    };
+
 
     const handleAddFaculty = async (e) => {
         e.preventDefault();
@@ -111,13 +141,14 @@ const AdminDashboard = () => {
         setNewFaculty({
             name: f.name,
             email: f.userId?.email || '',
-            password: '', // Don't edit password here for security
+            password: '', // Keep empty unless admin wants to change it
             department: f.department?._id || '',
             designation: f.designation,
             phone: f.phone || '',
             maxHours: f.maxHours,
             skills: Array.isArray(f.skills) ? f.skills.join(', ') : ''
         });
+
         // Scroll to form
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -185,18 +216,32 @@ const AdminDashboard = () => {
             {/* View Content */}
             {view === 'departments' && (
                 <div className="card" style={{ padding: '2rem' }}>
-                    <h2 style={{ marginBottom: '1.5rem' }}>University Departments</h2>
+                    <h2 style={{ marginBottom: '1.5rem' }}>{isEditingDept ? '📝 Update Department' : 'University Departments'}</h2>
                     <form onSubmit={handleAddDepartment} style={{ display: 'flex', gap: '1rem', maxWidth: '500px', marginBottom: '2.5rem' }}>
                         <input
                             type="text"
                             className="input-field"
-                            placeholder="New Department Name (e.g. CSE, EEE)"
+                            placeholder="Department Name (e.g. CSE, EEE)"
                             value={newDeptName}
                             onChange={(e) => setNewDeptName(e.target.value)}
                             required
                         />
-                        <button type="submit" className="btn">Create</button>
+                        <button type="submit" className="btn">{isEditingDept ? 'Update' : 'Create'}</button>
+                        {isEditingDept && (
+                            <button
+                                type="button"
+                                className="btn btn-secondary"
+                                onClick={() => {
+                                    setIsEditingDept(false);
+                                    setEditingDeptId(null);
+                                    setNewDeptName('');
+                                }}
+                            >
+                                Cancel
+                            </button>
+                        )}
                     </form>
+
 
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead>
@@ -235,17 +280,50 @@ const AdminDashboard = () => {
                                     </td>
                                     <td style={{ padding: '1rem' }}>{dept.hodId?.name || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Unassigned</span>}</td>
                                     <td style={{ padding: '1rem' }}>
-                                        <select
-                                            className="input-field"
-                                            onChange={(e) => handleAssignHOD(dept._id, e.target.value)}
-                                            value={dept.hodId?._id || ''}
-                                        >
-                                            <option value="">Assign HOD...</option>
-                                            {facultyList.filter(f => f.department?._id === dept._id).map(f => (
-                                                <option key={f._id} value={f._id}>{f.name}</option>
-                                            ))}
-                                        </select>
+                                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                            <button
+                                                onClick={() => handleEditDepartment(dept)}
+                                                style={{
+                                                    background: '#f1f5f9',
+                                                    border: 'none',
+                                                    padding: '0.4rem',
+                                                    borderRadius: '6px',
+                                                    cursor: 'pointer',
+                                                    color: '#475569'
+                                                }}
+                                                title="Edit Department"
+                                            >
+                                                ✏️
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteDepartment(dept._id)}
+                                                style={{
+                                                    background: '#fee2e2',
+                                                    border: 'none',
+                                                    padding: '0.4rem',
+                                                    borderRadius: '6px',
+                                                    cursor: 'pointer',
+                                                    color: '#dc2626'
+                                                }}
+                                                title="Delete Department"
+                                            >
+                                                🗑️
+                                            </button>
+                                            <div style={{ width: '1px', height: '20px', background: '#e2e8f0', margin: '0 0.5rem' }} />
+                                            <select
+                                                className="input-field select-action"
+                                                onChange={(e) => handleAssignHOD(dept._id, e.target.value)}
+                                                value={dept.hodId?._id || ''}
+                                            >
+                                                <option value="">Assign HOD...</option>
+                                                {facultyList.filter(f => f.department?._id === dept._id).map(f => (
+                                                    <option key={f._id} value={f._id}>{f.name}</option>
+                                                ))}
+                                            </select>
+
+                                        </div>
                                     </td>
+
                                 </tr>
                             ))}
                         </tbody>
@@ -259,8 +337,9 @@ const AdminDashboard = () => {
                         <h2 style={{ marginBottom: '1.5rem' }}>{isEditing ? '📝 Update Faculty Details' : '👤 Onboard New Faculty'}</h2>
                         <form onSubmit={handleAddFaculty} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
                             <input className="input-field" placeholder="Full Name" value={newFaculty.name} onChange={(e) => setNewFaculty({ ...newFaculty, name: e.target.value })} required />
-                            <input type="email" className="input-field" placeholder="Email Address" value={newFaculty.email} onChange={(e) => setNewFaculty({ ...newFaculty, email: e.target.value })} required disabled={isEditing} />
-                            <input type="password" className="input-field" placeholder={isEditing ? "(Login unchanged)" : "Password"} value={newFaculty.password} onChange={(e) => setNewFaculty({ ...newFaculty, password: e.target.value })} required={!isEditing} disabled={isEditing} />
+                            <input type="email" className="input-field" placeholder="Email Address" value={newFaculty.email} onChange={(e) => setNewFaculty({ ...newFaculty, email: e.target.value })} required />
+                            <input type="password" className="input-field" placeholder={isEditing ? "New Password (leave blank to keep current)" : "Password"} value={newFaculty.password} onChange={(e) => setNewFaculty({ ...newFaculty, password: e.target.value })} required={!isEditing} />
+
                             <select className="input-field" value={newFaculty.department} onChange={(e) => setNewFaculty({ ...newFaculty, department: e.target.value })} required>
                                 <option value="">Select Department</option>
                                 {departments.map(d => <option key={d._id} value={d._id}>{d.name}</option>)}
@@ -293,13 +372,15 @@ const AdminDashboard = () => {
                             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                                 <label style={{ color: '#64748b', fontSize: '0.9rem' }}>Department Filter:</label>
                                 <select
-                                    className="input-field"
+                                    className="input-field select-action"
                                     value={selectedDeptId}
                                     onChange={(e) => setSelectedDeptId(e.target.value)}
+                                    style={{ minWidth: '180px' }}
                                 >
                                     <option value="">All Departments</option>
                                     {departments.map(d => <option key={d._id} value={d._id}>{d.name}</option>)}
                                 </select>
+
                             </div>
                         </div>
 
@@ -409,13 +490,15 @@ const AdminDashboard = () => {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                         <h2 style={{ margin: 0 }}>Faculty Workload Analytics</h2>
                         <select
-                            className="input-field"
+                            className="input-field select-action"
                             value={selectedDeptId}
                             onChange={(e) => setSelectedDeptId(e.target.value)}
+                            style={{ minWidth: '200px' }}
                         >
                             <option value="">Filter by Department...</option>
                             {departments.map(d => <option key={d._id} value={d._id}>{d.name}</option>)}
                         </select>
+
                     </div>
 
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>

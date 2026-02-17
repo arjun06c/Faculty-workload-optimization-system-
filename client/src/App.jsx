@@ -6,6 +6,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import AcademicsDashboard from './pages/AcademicsDashboard';
 import FacultyDashboard from './pages/FacultyDashboard';
 import DepartmentDetails from './pages/DepartmentDetails';
+import FacultyTimetableView from './pages/FacultyTimetableView';
 import Unauthorized from './pages/Unauthorized';
 
 function App() {
@@ -24,6 +25,7 @@ function App() {
           {/* Academics Routes */}
           <Route element={<ProtectedRoute allowedRoles={['academics', 'admin']} />}>
             <Route path="/academics" element={<AcademicsDashboard />} />
+            <Route path="/academics/faculty/:id" element={<FacultyTimetableView />} />
           </Route>
 
           {/* Faculty Routes */}

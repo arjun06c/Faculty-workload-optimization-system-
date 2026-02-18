@@ -91,6 +91,43 @@ button {
   transition: box-shadow 0.3s ease;
 }
 
+/* Premium Form Styling */
+.premium-form-card {
+  background: #ffffff;
+  border: 1px solid #e0e7ff;
+  box-shadow: 0 10px 30px -5px rgba(79, 70, 229, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.premium-form-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, #4f46e5, #8b5cf6, #ec4899);
+}
+
+.btn-primary-gradient {
+  background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+  color: white;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 1rem;
+  font-size: 1rem;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.3);
+}
+
+.btn-primary-gradient:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 12px -1px rgba(79, 70, 229, 0.4);
+  filter: brightness(110%);
+}
+
 .input-group {
   margin-bottom: 1.25rem;
 }
@@ -98,21 +135,35 @@ button {
 .input-label {
   display: block;
   font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--text-main);
+  font-weight: 600;
+  color: #334155;
   margin-bottom: 0.5rem;
+  letter-spacing: 0.01em;
 }
 
 .input-field {
   width: 100%;
-  padding: 0.75rem 1rem;
-  border-radius: 10px;
-  border: 1.5px solid var(--border);
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: 1.5px solid #e2e8f0;
   background-color: #fff;
   transition: all 0.2s ease;
   font-size: 1rem;
   color: var(--text-main);
   font-family: inherit;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.input-field:hover {
+  border-color: #cbd5e1;
+  background-color: #f8fafc;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+  background-color: #fff;
 }
 
 /* Custom Dropdown Styling */
@@ -141,18 +192,6 @@ select.input-field {
   background-color: #fff !important;
   border-color: var(--primary) !important;
 }
-
-.input-field:hover {
-  border-color: #cbd5e1;
-}
-
-.input-field:focus {
-  outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.12);
-  background-color: #fff;
-}
-
 
 .page-container {
   max-width: 1200px;
@@ -220,7 +259,8 @@ tr:last-child td {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   /* Default 2 columns */
-  gap: 1rem;
+  gap: 1.5rem;
+  /* Increased gap for better spacing */
 }
 
 .form-grid.three-col {
@@ -337,6 +377,7 @@ tr:last-child td {
   .form-grid,
   .form-grid.three-col {
     grid-template-columns: 1fr;
+    gap: 1rem;
   }
 
   /* Input fields adjustment */

@@ -211,11 +211,19 @@ const AcademicsDashboard = () => {
 
             {view === 'timetable' && (
                 <div className="split-panel-layout">
-                    <div className="card" style={{ padding: '2rem' }}>
-                        <h2 style={{ marginBottom: '1.5rem', color: '#1e293b' }}>Generate Timetable Entry</h2>
+                    <div className="card premium-form-card">
+                        <div style={{ marginBottom: '2rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem' }}>
+                            <h2 style={{ margin: 0, color: '#1e293b', fontSize: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                ✨ Generate Timetable Entry
+                            </h2>
+                            <p style={{ margin: '0.5rem 0 0', color: '#64748b', fontSize: '0.9rem' }}>
+                                Schedule a new class for a faculty member.
+                            </p>
+                        </div>
+
                         <form onSubmit={handleAddEntry} className="form-grid">
                             {/* Date Input */}
-                            <div className="input-group" style={{ gridColumn: 'span 1' }}>
+                            <div className="input-group">
                                 <label className="input-label">Date</label>
                                 <input
                                     type="date"
@@ -225,13 +233,15 @@ const AcademicsDashboard = () => {
                                     required
                                 />
                             </div>
-                            <div className="input-group" style={{ gridColumn: 'span 1' }}>
+
+                            <div className="input-group">
                                 <label className="input-label">Department</label>
                                 <select className="input-field" value={newEntry.department} onChange={(e) => setNewEntry({ ...newEntry, department: e.target.value })} required>
                                     <option value="">Select Department</option>
                                     {departments.map(d => <option key={d._id} value={d._id}>{d.name}</option>)}
                                 </select>
                             </div>
+
                             <div className="input-group">
                                 <label className="input-label">Faculty</label>
                                 <select className="input-field" value={newEntry.facultyId} onChange={(e) => setNewEntry({ ...newEntry, facultyId: e.target.value })} required>
@@ -241,10 +251,12 @@ const AcademicsDashboard = () => {
                                     ))}
                                 </select>
                             </div>
+
                             <div className="input-group">
                                 <label className="input-label">Subject Name</label>
                                 <input className="input-field" placeholder="e.g. Data Structures" value={newEntry.subject} onChange={(e) => setNewEntry({ ...newEntry, subject: e.target.value })} required />
                             </div>
+
                             <div className="input-group">
                                 <label className="input-label">Session Type</label>
                                 <select className="input-field" value={newEntry.type} onChange={(e) => setNewEntry({ ...newEntry, type: e.target.value })} required>
@@ -252,6 +264,7 @@ const AcademicsDashboard = () => {
                                     <option value="Lab">Lab (1.5h)</option>
                                 </select>
                             </div>
+
                             <div className="input-group">
                                 <label className="input-label">Day</label>
                                 <select className="input-field" value={newEntry.day} onChange={(e) => setNewEntry({ ...newEntry, day: e.target.value })} required>
@@ -259,19 +272,35 @@ const AcademicsDashboard = () => {
                                     {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(d => <option key={d} value={d}>{d}</option>)}
                                 </select>
                             </div>
+
                             <div className="input-group">
                                 <label className="input-label">Period Slot</label>
                                 <input type="number" className="input-field" placeholder="Period (1-8)" min="1" max="8" value={newEntry.period} onChange={(e) => setNewEntry({ ...newEntry, period: e.target.value })} required />
                             </div>
+
+                            {/* [CHANGED] Class / Year is now a dropdown */}
                             <div className="input-group">
                                 <label className="input-label">Class / Year</label>
-                                <input className="input-field" placeholder="e.g. 3rd Year CSE A" value={newEntry.classYear} onChange={(e) => setNewEntry({ ...newEntry, classYear: e.target.value })} required />
+                                <select
+                                    className="input-field"
+                                    value={newEntry.classYear}
+                                    onChange={(e) => setNewEntry({ ...newEntry, classYear: e.target.value })}
+                                    required
+                                >
+                                    <option value="">Select Year</option>
+                                    <option value="1st Year">1st Year</option>
+                                    <option value="2nd Year">2nd Year</option>
+                                    <option value="3rd Year">3rd Year</option>
+                                    <option value="4th Year">4th Year</option>
+                                </select>
                             </div>
-                            <div className="input-group">
+
+                            <div className="input-group" style={{ gridColumn: 'span 2' }}>
                                 <label className="input-label">Room No.</label>
                                 <input className="input-field" placeholder="e.g. L-102" value={newEntry.roomNumber} onChange={(e) => setNewEntry({ ...newEntry, roomNumber: e.target.value })} required />
                             </div>
-                            <button type="submit" className="btn btn-block" style={{ gridColumn: '1 / -1', marginTop: '1rem', padding: '1rem', fontSize: '1rem', background: 'linear-gradient(to right, #2563eb, #1d4ed8)' }}>
+
+                            <button type="submit" className="btn btn-primary-gradient" style={{ gridColumn: '1 / -1', marginTop: '1rem' }}>
                                 ✨ Add to Schedule
                             </button>
                         </form>

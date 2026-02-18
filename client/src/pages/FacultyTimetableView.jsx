@@ -15,17 +15,19 @@ const FacultyTimetableView = () => {
 
     useEffect(() => {
         fetchFacultyTimetable();
-    }, [id]);
+    }, [id, selectedDate]);
 
     const fetchFacultyTimetable = async () => {
         try {
             setLoading(true);
-            // Fetch faculty details
+            // Fetch faculty details - Using a more direct approach if possible, 
+            // but the current controller requires fetching all or we could assume the ID is enough.
+            // Let's stick to fetching the specific faculty from the list for now.
             const facultyRes = await api.get('/admin/faculty');
             const currentFaculty = facultyRes.data.find(f => f._id === id);
             setFaculty(currentFaculty);
 
-            // Fetch timetable for this faculty
+            // Fetch ALL timetable entries for this faculty to fill the weekly grid
             const timetableRes = await api.get(`/academics/timetable?facultyId=${id}`);
             setTimetable(timetableRes.data);
             setLoading(false);
@@ -33,6 +35,14 @@ const FacultyTimetableView = () => {
             console.error(err);
             setLoading(false);
         }
+    };
+
+    // Helper: Safely format date to YYYY-MM-DD string regardless of local timezone
+    // Since we store dates as 00:00:00 UTC in the backend, we should use UTC for comparison.
+    const toISODate = (date) => {
+        if (!date) return '';
+        const d = new Date(date);
+        return d.toISOString().split('T')[0];
     };
 
     // Helper: Get dates for the current week (Mon-Fri) based on selectedDate
@@ -52,13 +62,16 @@ const FacultyTimetableView = () => {
         return weekDates;
     };
 
+    // [IMPORTANT] Definitions must come before calls
     const weekDates = getWeekDates();
 
     const getSlotForDayPeriod = (day, period) => {
         const targetDate = weekDates[day];
+        if (!timetable) return null;
+
         return timetable.find(slot => {
-            const slotDate = new Date(slot.date).toISOString().split('T')[0];
-            return slot.day === day && slot.period === period && slotDate === targetDate;
+            const slotDate = toISODate(slot.date);
+            return slot.day === day && Number(slot.period) === Number(period) && slotDate === targetDate;
         });
     };
 

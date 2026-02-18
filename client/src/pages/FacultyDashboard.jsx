@@ -12,6 +12,7 @@ const FacultyDashboard = () => {
     const [newRequest, setNewRequest] = useState({ type: 'query' }); // type: 'query' | 'workload'
     const [queries, setQueries] = useState([]);
     const [requests, setRequests] = useState([]);
+    const [viewMode, setViewMode] = useState('daily'); // 'daily' | 'weekly'
 
     // Forms
     const [queryForm, setQueryForm] = useState({ subject: '', priority: 'Medium', message: '' });
@@ -28,7 +29,7 @@ const FacultyDashboard = () => {
 
     useEffect(() => {
         fetchFacultyData();
-    }, [selectedDate]);
+    }, [selectedDate, viewMode]);
 
     const fetchFacultyData = async () => {
         try {
@@ -37,7 +38,10 @@ const FacultyDashboard = () => {
             const profileRes = await api.get('/faculty/me');
             setFacultyProfile(profileRes.data);
 
-            const timetableRes = await api.get(`/faculty/timetable?date=${selectedDate}`);
+            const timetableUrl = viewMode === 'daily'
+                ? `/faculty/timetable?date=${selectedDate}`
+                : `/faculty/timetable`; // Fetch all for weekly
+            const timetableRes = await api.get(timetableUrl);
             setTimetable(timetableRes.data);
 
             const requestsRes = await api.get('/faculty/workload-requests');
@@ -101,6 +105,45 @@ const FacultyDashboard = () => {
         } catch (err) {
             alert('Error submitting request');
         }
+    };
+
+    // Helper: Safely format date to YYYY-MM-DD string regardless of local timezone
+    const toISODate = (date) => {
+        if (!date) return '';
+        const d = new Date(date);
+        return d.toISOString().split('T')[0];
+    };
+
+    // Helper: Get dates for the current week (Mon-Fri) based on selectedDate
+    const getWeekDates = () => {
+        const current = new Date(selectedDate);
+        const day = current.getDay(); // 0=Sun, 1=Mon...
+        const diff = current.getDate() - day + (day === 0 ? -6 : 1); // Adjust to Monday
+
+        const monday = new Date(current.setDate(diff));
+        const weekDates = {};
+
+        const daysArr = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+        daysArr.forEach((d, index) => {
+            const date = new Date(monday);
+            date.setDate(monday.getDate() + index);
+            weekDates[d] = date.toISOString().split('T')[0];
+        });
+        return weekDates;
+    };
+
+    // Definitions must come before calls
+    const weekDates = getWeekDates();
+
+    const getSlotForDayPeriod = (day, period) => {
+        const targetDate = weekDates[day];
+        if (!timetable) return null;
+
+        return timetable.find(slot => {
+            const slotDate = toISODate(slot.date);
+            // Use Number() to ensure type-safe comparison for period (string vs number)
+            return slot.day === day && Number(slot.period) === Number(period) && slotDate === targetDate;
+        });
     };
 
     if (loading) return <div className="page-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
@@ -188,58 +231,125 @@ const FacultyDashboard = () => {
                         </div>
                     </div>
 
-                    {/* Date-Aware Timetable Grid */}
+                    {/* Timetable Grid with Toggle */}
                     <div className="card" style={{ padding: '2rem', flex: 1 }}>
                         <div className="flex-between-center" style={{ marginBottom: '1.5rem' }}>
-                            <h2 style={{ margin: 0, fontSize: '1.25rem', color: '#0f172a' }}>📅 Daily Schedule</h2>
-                            <input
-                                type="date"
-                                className="input-field"
-                                style={{ width: 'auto', padding: '0.4rem' }}
-                                value={selectedDate}
-                                onChange={(e) => setSelectedDate(e.target.value)}
-                            />
-                        </div>
-
-                        <div className="table-container">
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                {timetable.length > 0 ? timetable.map(session => (
-                                    <div key={session._id} style={{
-                                        padding: '1rem',
-                                        background: session.type === 'Lab' ? '#f0f9ff' : '#fefce8',
-                                        borderLeft: `4px solid ${session.type === 'Lab' ? '#0ea5e9' : '#eab308'}`,
-                                        borderRadius: '6px',
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center'
-                                    }}>
-                                        <div>
-                                            <div style={{ fontWeight: 'bold', color: '#334155', fontSize: '1.1rem' }}>
-                                                Period {session.period}: {session.subject}
-                                            </div>
-                                            <div style={{ color: '#64748b', fontSize: '0.85rem' }}>
-                                                {session.classYear} • Room {session.roomNumber}
-                                            </div>
-                                        </div>
-                                        <div style={{
-                                            padding: '0.4rem 0.8rem',
-                                            background: 'white',
-                                            borderRadius: '20px',
-                                            fontSize: '0.8rem',
-                                            fontWeight: '600',
-                                            color: '#64748b',
-                                            border: '1px solid #e2e8f0'
-                                        }}>
-                                            {session.type} ({session.hours}h)
-                                        </div>
-                                    </div>
-                                )) : (
-                                    <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8', background: '#f8fafc', borderRadius: '8px' }}>
-                                        No classes scheduled for {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                                    </div>
-                                )}
+                            <h2 style={{ margin: 0, fontSize: '1.25rem', color: '#0f172a' }}>📅 My Schedule</h2>
+                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                <div style={{ background: '#f1f5f9', padding: '0.25rem', borderRadius: '8px', display: 'flex', gap: '0.25rem', marginRight: '1rem' }}>
+                                    <button
+                                        onClick={() => setViewMode('daily')}
+                                        style={{
+                                            padding: '0.4rem 0.8rem', borderRadius: '6px', fontSize: '0.85rem', fontWeight: '600',
+                                            background: viewMode === 'daily' ? 'white' : 'transparent',
+                                            color: viewMode === 'daily' ? '#3b82f6' : '#64748b',
+                                            boxShadow: viewMode === 'daily' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                                        }}
+                                    >Daily</button>
+                                    <button
+                                        onClick={() => setViewMode('weekly')}
+                                        style={{
+                                            padding: '0.4rem 0.8rem', borderRadius: '6px', fontSize: '0.85rem', fontWeight: '600',
+                                            background: viewMode === 'weekly' ? 'white' : 'transparent',
+                                            color: viewMode === 'weekly' ? '#3b82f6' : '#64748b',
+                                            boxShadow: viewMode === 'weekly' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                                        }}
+                                    >Weekly</button>
+                                </div>
+                                <input
+                                    type="date"
+                                    className="input-field"
+                                    style={{ width: 'auto', padding: '0.4rem' }}
+                                    value={selectedDate}
+                                    onChange={(e) => setSelectedDate(e.target.value)}
+                                />
                             </div>
                         </div>
+
+                        {viewMode === 'daily' ? (
+                            <div className="table-container">
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                    {timetable.length > 0 ? timetable.map(session => (
+                                        <div key={session._id} style={{
+                                            padding: '1rem',
+                                            background: session.type === 'Lab' ? '#f0f9ff' : '#fefce8',
+                                            borderLeft: `4px solid ${session.type === 'Lab' ? '#0ea5e9' : '#eab308'}`,
+                                            borderRadius: '6px',
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center'
+                                        }}>
+                                            <div>
+                                                <div style={{ fontWeight: 'bold', color: '#334155', fontSize: '1.1rem' }}>
+                                                    Period {session.period}: {session.subject}
+                                                </div>
+                                                <div style={{ color: '#64748b', fontSize: '0.85rem' }}>
+                                                    {session.classYear} • Room {session.roomNumber}
+                                                </div>
+                                            </div>
+                                            <div style={{
+                                                padding: '0.4rem 0.8rem',
+                                                background: 'white',
+                                                borderRadius: '20px',
+                                                fontSize: '0.8rem',
+                                                fontWeight: '600',
+                                                color: '#64748b',
+                                                border: '1px solid #e2e8f0'
+                                            }}>
+                                                {session.type} ({session.hours}h)
+                                            </div>
+                                        </div>
+                                    )) : (
+                                        <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8', background: '#f8fafc', borderRadius: '8px' }}>
+                                            No classes scheduled for {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="table-container">
+                                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
+                                    <thead>
+                                        <tr style={{ background: '#f8fafc' }}>
+                                            <th style={{ padding: '0.75rem', textAlign: 'center', border: '1px solid #e2e8f0' }}>P / D</th>
+                                            {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(d => (
+                                                <th key={d} style={{ padding: '0.75rem', textAlign: 'center', border: '1px solid #e2e8f0', color: '#1e40af' }}>
+                                                    <div style={{ fontSize: '0.8rem' }}>{d}</div>
+                                                    <div style={{ fontSize: '0.7rem', fontWeight: 'normal', color: '#64748b' }}>{weekDates[d]}</div>
+                                                </th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {[1, 2, 3, 4, 5, 6, 7, 8].map(period => (
+                                            <tr key={period}>
+                                                <td style={{ padding: '0.75rem', textAlign: 'center', border: '1px solid #e2e8f0', background: '#f8fafc', fontWeight: 'bold' }}>{period}</td>
+                                                {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(day => {
+                                                    const slot = getSlotForDayPeriod(day, period);
+                                                    return (
+                                                        <td key={`${day}-${period}`} style={{
+                                                            padding: '0.5rem',
+                                                            border: '1px solid #e2e8f0',
+                                                            background: slot ? (slot.type === 'Lab' ? '#fef3c7' : '#e0e7ff') : 'white',
+                                                            fontSize: '0.75rem',
+                                                            minHeight: '60px'
+                                                        }}>
+                                                            {slot ? (
+                                                                <div>
+                                                                    <div style={{ fontWeight: 'bold', color: slot.type === 'Lab' ? '#92400e' : '#3730a3' }}>{slot.subject}</div>
+                                                                    <div style={{ color: '#64748b' }}>{slot.classYear}</div>
+                                                                    <div style={{ color: '#64748b' }}>R: {slot.roomNumber}</div>
+                                                                </div>
+                                                            ) : <div style={{ textAlign: 'center', color: '#cbd5e1' }}>—</div>}
+                                                        </td>
+                                                    );
+                                                })}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
                     </div>
                 </div>
 

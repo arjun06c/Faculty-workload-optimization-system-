@@ -31,7 +31,8 @@ const Login = () => {
             justifyContent: 'center',
             alignItems: 'center',
             minHeight: '100vh',
-            background: 'linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%)'
+            background: 'linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%)',
+            padding: '1rem'
         }}>
             <div className="card" style={{ width: '100%', maxWidth: '400px', border: 'none', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)' }}>
                 <h2 style={{ textAlign: 'center', marginBottom: '2rem', color: '#1e3a8a' }}>

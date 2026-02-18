@@ -19,6 +19,7 @@ app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/academics', require('./routes/academicsRoutes'));
 app.use('/api/faculty', require('./routes/facultyRoutes'));
+app.use('/api/queries', require('./routes/queryRoutes'));
 
 app.get('/', (req, res) => {
     res.send('API is running...');

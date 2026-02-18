@@ -43,7 +43,7 @@ exports.getMyTimetable = async (req, res) => {
 // @route   POST /api/faculty/workload-request
 // @access  Faculty
 exports.raiseWorkloadRequest = async (req, res) => {
-    const { reason, affectedPeriods } = req.body;
+    const { reason, date, type, periods } = req.body; // type: 'SINGLE' | 'FULL_DAY'
 
     try {
         const faculty = await Faculty.findOne({ userId: req.user.id });
@@ -51,12 +51,17 @@ exports.raiseWorkloadRequest = async (req, res) => {
             return res.status(404).json({ msg: 'Faculty profile not found' });
         }
 
+        // For FULL_DAY, we might auto-fetch periods if not provided, 
+        // but for now, we assume frontend provides the periods array.
+
         const newRequest = new WorkloadRequest({
             facultyId: faculty._id,
             department: faculty.department,
             reason,
-            affectedPeriods, // Array of { day, period }
-            status: 'Pending' // Initial status
+            date,
+            type: type || 'SINGLE',
+            periods: periods || [],
+            status: 'Pending'
         });
 
         await newRequest.save();

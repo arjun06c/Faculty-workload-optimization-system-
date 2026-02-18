@@ -7,9 +7,11 @@ const Faculty = require('../models/Faculty');
 // @route   POST /api/academics/timetable
 // @access  Academics, Admin
 exports.createTimetableEntry = async (req, res) => {
-    const { department, facultyId, subject, day, period, classYear, roomNumber, type } = req.body;
+    const { department, facultyId, subject, day, period, classYear, roomNumber, type, date } = req.body;
 
     try {
+        if (!date) return res.status(400).json({ msg: 'Date is required' });
+
         const periodNum = parseInt(period);
         if (periodNum < 1 || periodNum > 8) {
             return res.status(400).json({ msg: 'Period must be between 1 and 8' });
@@ -25,21 +27,31 @@ exports.createTimetableEntry = async (req, res) => {
             return res.status(400).json({ msg: `Overload: Faculty has reached max hours limit (${faculty.maxHours}h)` });
         }
 
-        // Constraint 2: Clashing slot
-        const existingFacultyStats = await Timetable.findOne({ facultyId, day, period: periodNum });
+        // Constraint 2: Clashing slot (Check Date too)
+        const dateObj = new Date(date);
+        const existingFacultyStats = await Timetable.findOne({
+            facultyId,
+            date: dateObj,
+            period: periodNum
+        });
         if (existingFacultyStats) {
-            return res.status(400).json({ msg: 'Conflict: Faculty is already assigned for this slot' });
+            return res.status(400).json({ msg: 'Conflict: Faculty is already assigned for this slot on this date' });
         }
 
-        const existingClassStats = await Timetable.findOne({ department, classYear, day, period: periodNum });
+        const existingClassStats = await Timetable.findOne({
+            department,
+            classYear,
+            date: dateObj,
+            period: periodNum
+        });
         if (existingClassStats) {
-            return res.status(400).json({ msg: 'Conflict: Class is already occupied for this slot' });
+            return res.status(400).json({ msg: 'Conflict: Class is already occupied for this slot on this date' });
         }
 
         // Constraint 3: Continuous Periods (Max 3)
         const prevPeriods = await Timetable.find({
             facultyId,
-            day,
+            date: dateObj,
             period: { $in: [periodNum - 1, periodNum - 2, periodNum - 3] }
         }).sort({ period: 1 });
 
@@ -50,17 +62,17 @@ exports.createTimetableEntry = async (req, res) => {
             return res.status(400).json({ msg: 'Constraint: Faculty cannot have more than 3 continuous periods' });
         }
 
-        // Also check if adding this creates 4 continuous with future periods
-        const nextPeriods = await Timetable.find({
-            facultyId,
-            day,
-            period: { $in: [periodNum + 1, periodNum + 2, periodNum + 3] }
-        }).sort({ period: 1 });
-
-        // Complex overlap check would be better but simple back/forward check covers most cases
-
         const newEntry = new Timetable({
-            department, facultyId, subject, day, period: periodNum, classYear, roomNumber, type, hours: hoursAdded
+            department,
+            facultyId,
+            subject,
+            day,
+            period: periodNum,
+            classYear,
+            roomNumber,
+            type,
+            hours: hoursAdded,
+            date: dateObj
         });
 
         await newEntry.save();
@@ -115,27 +127,51 @@ exports.getAllWorkloadRequests = async (req, res) => {
     }
 };
 
-// @desc    Update workload request status
+// @desc    Update workload request (Status, Decision Log, Reason, Department)
 // @route   PUT /api/academics/workload-requests/:id
 // @access  Academics
-exports.updateWorkloadRequestStatus = async (req, res) => {
-    const { status, decisionLog } = req.body;
+exports.updateWorkloadRequest = async (req, res) => {
+    const { status, decisionLog, reason, department } = req.body;
     try {
         let request = await WorkloadRequest.findById(req.params.id);
         if (!request) return res.status(404).json({ msg: 'Request not found' });
 
-        request.status = status;
-        if (decisionLog) request.decisionLog = decisionLog; // Add decision log field if I update the model
+        if (status) request.status = status;
+        if (decisionLog !== undefined) request.decisionLog = decisionLog;
+        if (reason) request.reason = reason;
+        if (department) request.department = department;
 
         await request.save();
-        res.json(request);
+
+        // Return populated request
+        const updatedRequest = await WorkloadRequest.findById(req.params.id)
+            .populate('facultyId', 'name')
+            .populate('department', 'name');
+
+        res.json(updatedRequest);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server error');
     }
 };
 
-// @desc    Smart Reassignment Logic
+// @desc    Delete workload request
+// @route   DELETE /api/academics/workload-requests/:id
+// @access  Academics
+exports.deleteWorkloadRequest = async (req, res) => {
+    try {
+        const request = await WorkloadRequest.findById(req.params.id);
+        if (!request) return res.status(404).json({ msg: 'Request not found' });
+
+        await request.deleteOne();
+        res.json({ msg: 'Workload request removed' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+};
+
+// @desc    Smart Auto Assign Reassignment Logic
 // @route   POST /api/academics/workload-requests/:id/reassign
 // @access  Academics, Admin
 exports.smartReassign = async (req, res) => {
@@ -143,65 +179,100 @@ exports.smartReassign = async (req, res) => {
         const request = await WorkloadRequest.findById(req.params.id);
         if (!request) return res.status(404).json({ msg: 'Request not found' });
 
-        // Find the period to reassign (latest as per requirement)
-        const affectedTimetableEntry = await Timetable.findOne({
-            facultyId: request.facultyId,
-            department: request.department
-        }).sort({ _id: -1 }); // Get last assigned
-
-        if (!affectedTimetableEntry) {
-            return res.status(400).json({ msg: 'No timetable entry found to reassign' });
+        if (request.status === 'Reassigned') {
+            return res.status(400).json({ msg: 'Request already reassigned' });
         }
 
-        // Find potential replacement in SAME department
-        const replacements = await Faculty.find({
-            department: request.department,
-            _id: { $ne: request.facultyId },
-            skills: { $in: [affectedTimetableEntry.subject] }
-        });
+        const dateObj = new Date(request.date);
+        const periodsToReassign = request.periods || []; // Array of periods
+        let successLog = [];
+        let failedLog = [];
 
-        let bestReplacement = null;
+        // Iterate over each requested period
+        for (const targetPeriod of periodsToReassign) {
 
-        for (const rep of replacements) {
-            // Check availability for that specific slot
-            const clash = await Timetable.findOne({
-                facultyId: rep._id,
-                day: affectedTimetableEntry.day,
-                period: affectedTimetableEntry.period
+            // Find specific timetable entry for this date/period
+            const affectedTimetableEntry = await Timetable.findOne({
+                facultyId: request.facultyId,
+                date: dateObj,
+                period: targetPeriod
             });
 
-            if (!clash && (rep.currentHours + affectedTimetableEntry.hours <= rep.maxHours)) {
-                if (!bestReplacement || rep.currentHours < bestReplacement.currentHours) {
-                    bestReplacement = rep;
-                }
+            if (!affectedTimetableEntry) {
+                // Skip if no class was scheduled for this period
+                continue;
+            }
+
+            // --- SMART AUTO ASSIGN LOGIC ---
+            // 1. Same Department
+            // 2. Not the requester
+            const candidates = await Faculty.find({
+                department: request.department,
+                _id: { $ne: request.facultyId }
+            });
+
+            const validCandidates = [];
+
+            for (const faculty of candidates) {
+                // Check 1: Overloaded?
+                if (faculty.currentHours >= faculty.maxHours) continue;
+
+                // Check 2: Free in this slot on this Date?
+                const clash = await Timetable.findOne({
+                    facultyId: faculty._id,
+                    date: dateObj,
+                    period: targetPeriod
+                });
+                if (clash) continue;
+
+                validCandidates.push(faculty);
+            }
+
+            if (validCandidates.length > 0) {
+                // Step 4: Faculty with Least Workload
+                validCandidates.sort((a, b) => a.currentHours - b.currentHours);
+                const bestReplacement = validCandidates[0];
+
+                // Step 5: Assign
+                const originalHours = affectedTimetableEntry.hours;
+
+                // Update Timetable
+                affectedTimetableEntry.facultyId = bestReplacement._id;
+                await affectedTimetableEntry.save();
+
+                // Update Hours
+                const oldFaculty = await Faculty.findById(request.facultyId);
+                oldFaculty.currentHours -= originalHours;
+                await oldFaculty.save();
+
+                bestReplacement.currentHours += originalHours;
+                await bestReplacement.save();
+
+                successLog.push(`P${targetPeriod}: Reassigned to ${bestReplacement.name}`);
+            } else {
+                failedLog.push(`P${targetPeriod}: No replacement found`);
             }
         }
 
-        if (!bestReplacement) {
-            return res.status(400).json({ msg: 'No available faculty in this department' });
+        // Final Status Update
+        if (failedLog.length === 0 && successLog.length > 0) {
+            request.status = 'Approved'; // Or 'Reassigned'
+            request.decisionLog = successLog.join('; ');
+        } else if (successLog.length > 0) {
+            request.status = 'Escalated'; // Partial success
+            request.decisionLog = `Partial: ${successLog.join('; ')} | Failed: ${failedLog.join('; ')}`;
+        } else {
+            request.decisionLog = failedLog.join('; ');
+            // Keep pending or escalate
+            request.status = 'Escalated';
         }
 
-        // Execution Step: Reassign
-        const oldFaculty = await Faculty.findById(request.facultyId);
-
-        // 1. Update Timetable entry
-        const originalHours = affectedTimetableEntry.hours;
-        affectedTimetableEntry.facultyId = bestReplacement._id;
-        await affectedTimetableEntry.save();
-
-        // 2. Update Hours for both
-        oldFaculty.currentHours -= originalHours;
-        await oldFaculty.save();
-
-        bestReplacement.currentHours += originalHours;
-        await bestReplacement.save();
-
-        // 3. Update Request status
-        request.status = 'Reassigned';
-        request.decisionLog = `Reassigned ${affectedTimetableEntry.subject} to ${bestReplacement.name}`;
         await request.save();
 
-        res.json({ msg: 'Successfully reassigned', replacement: bestReplacement.name });
+        res.json({
+            msg: 'Auto-assign process completed',
+            log: request.decisionLog
+        });
 
     } catch (err) {
         console.error(err.message);

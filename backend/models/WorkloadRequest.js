@@ -11,6 +11,18 @@ const WorkloadRequestSchema = new mongoose.Schema({
         ref: 'Department',
         required: true
     },
+    date: {
+        type: Date,
+        required: true
+    },
+    type: {
+        type: String,
+        enum: ['SINGLE', 'FULL_DAY'],
+        default: 'SINGLE'
+    },
+    periods: [{
+        type: Number
+    }],
     reason: {
         type: String,
         required: true
@@ -24,10 +36,6 @@ const WorkloadRequestSchema = new mongoose.Schema({
         type: String, // 'Academics Office' or null
         default: null
     },
-    affectedPeriods: [{
-        day: String,
-        period: Number
-    }],
     decisionLog: {
         type: String,
         default: null

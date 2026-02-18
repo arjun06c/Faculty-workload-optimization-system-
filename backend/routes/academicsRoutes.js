@@ -5,7 +5,8 @@ const {
     createTimetableEntry,
     getTimetable,
     getAllWorkloadRequests,
-    updateWorkloadRequestStatus
+    updateWorkloadRequest,
+    deleteWorkloadRequest
 } = require('../controllers/academicsController');
 
 // Timetable Management
@@ -14,7 +15,8 @@ router.get('/timetable', [auth], getTimetable); // Accessible by all authenticat
 
 // Workload Request Management (Academics View)
 router.get('/workload-requests', [auth, checkRole(['admin', 'academics'])], getAllWorkloadRequests);
-router.put('/workload-requests/:id', [auth, checkRole(['admin', 'academics'])], updateWorkloadRequestStatus);
+router.put('/workload-requests/:id', [auth, checkRole(['admin', 'academics'])], updateWorkloadRequest);
+router.delete('/workload-requests/:id', [auth, checkRole(['admin', 'academics'])], deleteWorkloadRequest);
 router.post('/workload-requests/:id/reassign', [auth, checkRole(['admin', 'academics'])], require('../controllers/academicsController').smartReassign);
 
 module.exports = router;

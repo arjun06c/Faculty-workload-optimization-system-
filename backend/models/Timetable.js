@@ -39,6 +39,16 @@ const TimetableSchema = new mongoose.Schema({
     },
     roomNumber: {
         type: String
+    },
+    date: {
+        type: Date,
+        required: true
+    },
+    startTime: {
+        type: String
+    },
+    endTime: {
+        type: String
     }
 });
 

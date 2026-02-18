@@ -8,6 +8,7 @@ const FacultyTimetableView = () => {
     const [faculty, setFaculty] = useState(null);
     const [timetable, setTimetable] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
     const periods = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -34,8 +35,31 @@ const FacultyTimetableView = () => {
         }
     };
 
+    // Helper: Get dates for the current week (Mon-Fri) based on selectedDate
+    const getWeekDates = () => {
+        const current = new Date(selectedDate);
+        const day = current.getDay(); // 0=Sun, 1=Mon...
+        const diff = current.getDate() - day + (day === 0 ? -6 : 1); // Adjust to Monday
+
+        const monday = new Date(current.setDate(diff));
+        const weekDates = {};
+
+        days.forEach((d, index) => {
+            const date = new Date(monday);
+            date.setDate(monday.getDate() + index);
+            weekDates[d] = date.toISOString().split('T')[0];
+        });
+        return weekDates;
+    };
+
+    const weekDates = getWeekDates();
+
     const getSlotForDayPeriod = (day, period) => {
-        return timetable.find(slot => slot.day === day && slot.period === period);
+        const targetDate = weekDates[day];
+        return timetable.find(slot => {
+            const slotDate = new Date(slot.date).toISOString().split('T')[0];
+            return slot.day === day && slot.period === period && slotDate === targetDate;
+        });
     };
 
     if (loading) return <div className="page-container">Loading Faculty Timetable...</div>;
@@ -47,23 +71,22 @@ const FacultyTimetableView = () => {
     else if (workloadPercentage >= 80) statusColor = '#f59e0b';
 
     return (
-        <div className="page-container" style={{ background: '#f8fafc', minHeight: '100vh', padding: '2rem' }}>
+        <div className="page-container" style={{ background: '#f8fafc', minHeight: '100vh', padding: '2rem 1rem' }}>
             <div style={{ marginBottom: '2rem' }}>
                 <button onClick={() => navigate('/academics')} className="btn btn-secondary" style={{ marginBottom: '1rem' }}>
                     ← Back to Academics Dashboard
                 </button>
 
                 {/* Faculty Header */}
-                <div className="card" style={{
+                <div className="card flex-between-center" style={{
                     padding: '2rem',
                     borderLeft: '5px solid var(--primary)',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
+                    flexWrap: 'wrap',
+                    gap: '1.5rem'
                 }}>
                     <div>
                         <h1 style={{ margin: 0, color: '#1e3a8a', fontSize: '2rem' }}>{faculty.name}</h1>
-                        <div style={{ display: 'flex', gap: '2rem', marginTop: '0.75rem', color: '#64748b', fontSize: '1rem' }}>
+                        <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.75rem', color: '#64748b', fontSize: '1rem', flexWrap: 'wrap' }}>
                             <span><strong>Designation:</strong> {faculty.designation}</span>
                             <span><strong>Department:</strong> {faculty.department?.name}</span>
                             <span><strong>Email:</strong> {faculty.userId?.email}</span>
@@ -71,10 +94,21 @@ const FacultyTimetableView = () => {
                     </div>
                     <div style={{ textAlign: 'right' }}>
                         <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.5rem' }}>Workload Status</div>
-                        <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: statusColor }}>
-                            {faculty.currentHours} / {faculty.maxHours}h
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                            <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: statusColor }}>
+                                {faculty.currentHours} / {faculty.maxHours}h
+                            </span>
                         </div>
-                        <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                        <div style={{
+                            fontSize: '0.8rem',
+                            padding: '0.25rem 0.75rem',
+                            borderRadius: '1rem',
+                            background: workloadPercentage >= 100 ? '#fef2f2' : workloadPercentage >= 80 ? '#fffbeb' : '#ecfdf5',
+                            color: statusColor,
+                            fontWeight: '600',
+                            display: 'inline-block',
+                            marginTop: '0.25rem'
+                        }}>
                             {workloadPercentage >= 100 ? 'Overloaded' : workloadPercentage >= 80 ? 'Near Capacity' : 'Available'}
                         </div>
                     </div>
@@ -83,8 +117,21 @@ const FacultyTimetableView = () => {
 
             {/* Weekly Timetable Grid */}
             <div className="card" style={{ padding: '2rem' }}>
-                <h2 style={{ marginBottom: '1.5rem', fontSize: '1.5rem', color: '#1e293b' }}>📅 Weekly Schedule</h2>
-                <div style={{ overflowX: 'auto' }}>
+                <div className="flex-between-center" style={{ marginBottom: '1.5rem' }}>
+                    <h2 style={{ margin: 0, fontSize: '1.5rem', color: '#1e293b' }}>📅 Weekly Schedule</h2>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontSize: '0.9rem', color: '#64748b' }}>Week of:</span>
+                        <input
+                            type="date"
+                            className="input-field"
+                            style={{ width: 'auto', padding: '0.4rem' }}
+                            value={selectedDate}
+                            onChange={(e) => setSelectedDate(e.target.value)}
+                        />
+                    </div>
+                </div>
+
+                <div className="table-container">
                     <table style={{
                         width: '100%',
                         borderCollapse: 'collapse',
@@ -112,7 +159,12 @@ const FacultyTimetableView = () => {
                                         color: '#1e40af',
                                         fontWeight: '600',
                                         fontSize: '0.95rem'
-                                    }}>{day}</th>
+                                    }}>
+                                        <div>{day}</div>
+                                        <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 'normal', marginTop: '0.2rem' }}>
+                                            {weekDates[day]}
+                                        </div>
+                                    </th>
                                 ))}
                             </tr>
                         </thead>
@@ -183,7 +235,7 @@ const FacultyTimetableView = () => {
                 </div>
 
                 {/* Legend */}
-                <div style={{ marginTop: '1.5rem', display: 'flex', gap: '2rem', justifyContent: 'center', alignItems: 'center' }}>
+                <div style={{ marginTop: '1.5rem', display: 'flex', gap: '2rem', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <div style={{ width: '20px', height: '20px', background: '#e0e7ff', border: '1px solid #c7d2fe', borderRadius: '4px' }}></div>
                         <span style={{ fontSize: '0.85rem', color: '#64748b' }}>Theory Class</span>

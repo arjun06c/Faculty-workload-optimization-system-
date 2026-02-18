@@ -33,16 +33,15 @@ const DepartmentDetails = () => {
     if (!department) return <div className="page-container">Department not found.</div>;
 
     return (
-        <div className="page-container" style={{ background: '#f8fafc', minHeight: '100vh', padding: '2rem' }}>
-            <div style={{ marginBottom: '2rem' }}>
-                <button onClick={() => navigate('/admin')} className="btn btn-secondary" style={{ marginBottom: '1rem' }}>
-                    ← Back to Dashboard
-                </button>
-                <div className="card" style={{ padding: '2rem', borderLeft: '5px solid var(--primary)' }}>
-                    <h1 style={{ margin: 0, color: '#1e3a8a' }}>{department.name} Department</h1>
-                    <p style={{ color: '#64748b', fontSize: '1.1rem', marginTop: '0.5rem' }}>
-                        HOD: <span style={{ fontWeight: 'bold', color: '#1e293b' }}>{department.hodId?.name || 'Not Assigned'}</span>
-                    </p>
+        <div className="page-container" style={{ background: '#f8fafc', minHeight: '100vh' }}>
+            <div className="card flex-between-center" style={{ marginBottom: '2rem', padding: '1.5rem 2rem', borderLeft: '5px solid var(--primary)' }}>
+                <div>
+                    <h1 style={{ margin: 0, color: '#1e3a8a', fontSize: '1.8rem' }}>{department?.name}</h1>
+                    <p style={{ margin: 0, color: '#64748b' }}>Department Overview & Faculty</p>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '0.9rem', color: '#64748b' }}>Head of Department</div>
+                    <div style={{ fontWeight: '600', color: '#1e293b' }}>{department?.hodId?.name || 'Not Assigned'}</div>
                 </div>
             </div>
 
@@ -52,42 +51,38 @@ const DepartmentDetails = () => {
                     {faculty.map(f => (
                         <div key={f._id} style={{
                             padding: '1.5rem',
-                            borderRadius: '12px',
                             border: '1px solid #e2e8f0',
+                            borderRadius: '8px',
                             background: 'white',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
-                        }}>
-                            <h3 style={{ margin: 0, color: '#1e293b' }}>{f.name}</h3>
-                            <p style={{ margin: '0.25rem 0 1rem 0', color: 'var(--primary)', fontWeight: '600', fontSize: '0.9rem' }}>{f.designation}</p>
-
-                            <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1rem' }}>
-                                <div>✉️ {f.userId?.email}</div>
-                                <div>📞 {f.phone || 'N/A'}</div>
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                            transition: 'transform 0.2s',
+                            cursor: 'pointer'
+                        }}
+                            onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                            onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                        >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#1e293b' }}>{f.name}</h3>
+                                <span style={{ background: '#dbeafe', color: '#1e40af', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.7rem', height: 'fit-content' }}>
+                                    {f.designation}
+                                </span>
                             </div>
-
-                            <div style={{ marginBottom: '1rem' }}>
-                                <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '0.4rem' }}>Skills</div>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                                    {f.skills?.map(skill => (
-                                        <span key={skill} style={{
-                                            background: '#f1f5f9',
-                                            color: '#475569',
-                                            padding: '2px 8px',
-                                            borderRadius: '4px',
-                                            fontSize: '0.75rem'
-                                        }}>{skill}</span>
-                                    ))}
-                                </div>
+                            <div style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '1rem' }}>
+                                {f.email}
                             </div>
-
-                            <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Workload</span>
-                                <span style={{ fontWeight: 'bold' }}>{f.currentHours} / {f.maxHours}h</span>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+                                <span>Workload: <strong>{f.currentHours}</strong>/{f.maxHours} hrs</span>
+                                <span style={{
+                                    color: (f.currentHours / f.maxHours) >= 1 ? '#ef4444' : (f.currentHours / f.maxHours) >= 0.8 ? '#f59e0b' : '#10b981',
+                                    fontWeight: '600'
+                                }}>
+                                    {(f.currentHours / f.maxHours) >= 1 ? 'Overloaded' : (f.currentHours / f.maxHours) >= 0.8 ? 'Near Capacity' : 'Available'}
+                                </span>
                             </div>
                         </div>
                     ))}
                     {faculty.length === 0 && (
-                        <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
+                        <div style={{ gridColumn: '1 / -1', padding: '3rem', textAlign: 'center', color: '#94a3b8', background: '#f8fafc', borderRadius: '8px', border: '2px dashed #e2e8f0' }}>
                             No faculty members found in this department.
                         </div>
                     )}

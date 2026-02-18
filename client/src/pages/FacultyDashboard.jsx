@@ -169,29 +169,37 @@ const FacultyDashboard = () => {
         <div className="page-container" style={{ background: '#f8fafc', minHeight: '100vh', padding: '2rem 1rem' }}>
             {/* Professional Profile Header */}
             {/* Professional Profile Header */}
-            <div className="card faculty-profile-card">
-                <div className="faculty-profile-content">
-                    <div className="faculty-profile-avatar">
+            <div className="card faculty-profile-card" style={{ position: 'relative', overflow: 'hidden' }}>
+                <div className="faculty-profile-content" style={{ position: 'relative', zIndex: 1 }}>
+                    <div className="faculty-profile-avatar animate-pulse-soft" style={{
+                        background: 'linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%)',
+                        border: '4px solid #f8fafc',
+                        boxShadow: '0 4px 12px rgba(79, 70, 229, 0.2)'
+                    }}>
                         {facultyProfile?.name?.charAt(0) || 'F'}
                     </div>
                     <div>
-                        <h1 className="faculty-profile-heading">
+                        <h1 className="faculty-profile-heading" style={{ color: '#0f172a' }}>
                             Welcome, {facultyProfile?.name}
                         </h1>
-                        <div className="faculty-profile-details">
-                            <span>
-                                💼 {facultyProfile?.designation || 'Faculty Member'}
+                        <div className="faculty-profile-details" style={{ marginTop: '0.75rem', gap: '1.5rem', color: '#64748b' }}>
+                            <span style={{ fontSize: '1rem', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ fontSize: '1.2rem' }}>💼</span> {facultyProfile?.designation || 'Faculty Member'}
                             </span>
-                            <span>
-                                🏢 {facultyProfile?.department?.name || 'Department'}
+                            <span style={{ fontSize: '1rem', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ fontSize: '1.2rem' }}>🏢</span> {facultyProfile?.department?.name || 'Department'}
                             </span>
-                            <span>
-                                📧 {facultyProfile?.email}
+                            <span style={{ fontSize: '1rem', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ fontSize: '1.2rem' }}>📧</span> {facultyProfile?.email}
                             </span>
                         </div>
                     </div>
                 </div>
-                <button onClick={logout} className="btn btn-secondary faculty-signout-btn" style={{ whiteSpace: 'nowrap' }}>Sign Out</button>
+                <button onClick={logout} className="btn btn-secondary faculty-signout-btn" style={{
+                    whiteSpace: 'nowrap',
+                    fontWeight: '600',
+                    zIndex: 2
+                }}>Sign Out</button>
             </div>
 
             <div className="split-panel-layout">
@@ -220,14 +228,23 @@ const FacultyDashboard = () => {
                             </span>
                         </div>
 
-                        <div style={{ width: '100%', height: '12px', background: '#f1f5f9', borderRadius: '6px', overflow: 'hidden', marginBottom: '1rem' }}>
+                        <div style={{ width: '100%', height: '12px', background: '#f1f5f9', borderRadius: '6px', overflow: 'hidden', marginBottom: '1.25rem', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)' }}>
                             <div style={{
                                 width: `${Math.min(workloadPercentage, 100)}%`,
                                 height: '100%',
-                                background: workloadPercentage >= 100 ? 'linear-gradient(90deg, #ef4444, #dc2626)' : (workloadPercentage >= 80 ? 'linear-gradient(90deg, #f59e0b, #d97706)' : 'linear-gradient(90deg, #10b981, #059669)'),
+                                background: workloadPercentage >= 100
+                                    ? 'linear-gradient(90deg, #ef4444, #b91c1c)'
+                                    : (workloadPercentage >= 80 ? 'linear-gradient(90deg, #f59e0b, #d97706)' : 'linear-gradient(90deg, #10b981, #059669)'),
                                 borderRadius: '6px',
-                                transition: 'width 1s ease-in-out'
+                                transition: 'width 1.5s cubic-bezier(0.34, 1.56, 0.64, 1)'
                             }}></div>
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: '#64748b', display: 'flex', justifyContent: 'space-between' }}>
+                            <span>0%</span>
+                            <span style={{ fontWeight: '600', color: workloadPercentage >= 100 ? '#dc2626' : '#64748b' }}>
+                                {workloadPercentage >= 100 ? 'Limit Exceeded' : (workloadPercentage >= 80 ? 'Approaching Limit' : 'Optimal Workload')}
+                            </span>
+                            <span>100%</span>
                         </div>
                     </div>
 
@@ -270,33 +287,41 @@ const FacultyDashboard = () => {
                             <div className="table-container">
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                     {timetable.length > 0 ? timetable.map(session => (
-                                        <div key={session._id} style={{
-                                            padding: '1rem',
-                                            background: session.type === 'Lab' ? '#f0f9ff' : '#fefce8',
-                                            borderLeft: `4px solid ${session.type === 'Lab' ? '#0ea5e9' : '#eab308'}`,
-                                            borderRadius: '6px',
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                            alignItems: 'center'
+                                        <div key={session._id} className="ticket-card" style={{
+                                            borderLeftColor: session.type === 'Lab' ? '#0ea5e9' : '#eab308'
                                         }}>
-                                            <div>
-                                                <div style={{ fontWeight: 'bold', color: '#334155', fontSize: '1.1rem' }}>
-                                                    Period {session.period}: {session.subject}
+                                            <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+                                                <div style={{
+                                                    width: '50px', height: '50px', borderRadius: '12px',
+                                                    background: session.type === 'Lab' ? '#e0f2fe' : '#fef9c3',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    fontSize: '1.25rem', fontWeight: '800', color: session.type === 'Lab' ? '#0369a1' : '#a16207'
+                                                }}>
+                                                    {session.period}
                                                 </div>
-                                                <div style={{ color: '#64748b', fontSize: '0.85rem' }}>
-                                                    {session.classYear} • Room {session.roomNumber}
+                                                <div>
+                                                    <div className="ticket-period">Period {session.period}</div>
+                                                    <div style={{ fontWeight: 'bold', color: '#0f172a', fontSize: '1.15rem', marginBottom: '0.2rem' }}>
+                                                        {session.subject}
+                                                    </div>
+                                                    <div style={{ color: '#64748b', fontSize: '0.9rem', display: 'flex', gap: '0.75rem' }}>
+                                                        <span>📍 Room {session.roomNumber}</span>
+                                                        <span>👥 {session.classYear}</span>
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div style={{
-                                                padding: '0.4rem 0.8rem',
-                                                background: 'white',
-                                                borderRadius: '20px',
-                                                fontSize: '0.8rem',
-                                                fontWeight: '600',
-                                                color: '#64748b',
-                                                border: '1px solid #e2e8f0'
-                                            }}>
-                                                {session.type} ({session.hours}h)
+                                            <div style={{ textAlign: 'right' }}>
+                                                <div style={{
+                                                    padding: '0.35rem 0.85rem',
+                                                    background: session.type === 'Lab' ? '#f0f9ff' : '#fffbeb',
+                                                    borderRadius: '20px',
+                                                    fontSize: '0.75rem',
+                                                    fontWeight: '700',
+                                                    color: session.type === 'Lab' ? '#0369a1' : '#a16207',
+                                                    border: `1px solid ${session.type === 'Lab' ? '#bae6fd' : '#fef08a'}`
+                                                }}>
+                                                    {session.type} ({session.hours}h)
+                                                </div>
                                             </div>
                                         </div>
                                     )) : (
@@ -323,24 +348,30 @@ const FacultyDashboard = () => {
                                     <tbody>
                                         {[1, 2, 3, 4, 5, 6, 7, 8].map(period => (
                                             <tr key={period}>
-                                                <td style={{ padding: '0.75rem', textAlign: 'center', border: '1px solid #e2e8f0', background: '#f8fafc', fontWeight: 'bold' }}>{period}</td>
+                                                <td style={{ padding: '1rem', textAlign: 'center', border: '1px solid #f1f5f9', background: '#f8fafc', fontWeight: '800', color: '#64748b' }}>{period}</td>
                                                 {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(day => {
                                                     const slot = getSlotForDayPeriod(day, period);
                                                     return (
                                                         <td key={`${day}-${period}`} style={{
-                                                            padding: '0.5rem',
-                                                            border: '1px solid #e2e8f0',
-                                                            background: slot ? (slot.type === 'Lab' ? '#fef3c7' : '#e0e7ff') : 'white',
-                                                            fontSize: '0.75rem',
-                                                            minHeight: '60px'
+                                                            padding: '0.75rem',
+                                                            border: '1px solid #f1f5f9',
+                                                            background: slot ? (slot.type === 'Lab' ? '#fffaf0' : '#f5f7ff') : 'white',
+                                                            fontSize: '0.8rem',
+                                                            transition: 'background 0.2s ease'
                                                         }}>
                                                             {slot ? (
-                                                                <div>
-                                                                    <div style={{ fontWeight: 'bold', color: slot.type === 'Lab' ? '#92400e' : '#3730a3' }}>{slot.subject}</div>
-                                                                    <div style={{ color: '#64748b' }}>{slot.classYear}</div>
-                                                                    <div style={{ color: '#64748b' }}>R: {slot.roomNumber}</div>
+                                                                <div style={{
+                                                                    padding: '0.5rem',
+                                                                    borderRadius: '8px',
+                                                                    background: 'white',
+                                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.04)',
+                                                                    borderLeft: `3px solid ${slot.type === 'Lab' ? '#f59e0b' : '#3b82f6'}`
+                                                                }}>
+                                                                    <div style={{ fontWeight: '800', color: slot.type === 'Lab' ? '#b45309' : '#1e40af' }}>{slot.subject}</div>
+                                                                    <div style={{ color: '#64748b', fontSize: '0.7rem', marginTop: '0.2rem' }}>{slot.classYear}</div>
+                                                                    <div style={{ color: '#94a3b8', fontSize: '0.7rem' }}>📍 {slot.roomNumber}</div>
                                                                 </div>
-                                                            ) : <div style={{ textAlign: 'center', color: '#cbd5e1' }}>—</div>}
+                                                            ) : <div style={{ textAlign: 'center', color: '#e2e8f0' }}>empty</div>}
                                                         </td>
                                                     );
                                                 })}
@@ -357,18 +388,30 @@ const FacultyDashboard = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
 
                     {/* Tabs */}
-                    <div style={{ display: 'flex', gap: '1rem' }}>
+                    <div style={{ display: 'flex', gap: '0.75rem', padding: '0.4rem', background: '#f1f5f9', borderRadius: '12px' }}>
                         <button
                             className={`btn ${newRequest.type === 'query' ? '' : 'btn-secondary'}`}
                             onClick={() => { setNewRequest({ ...newRequest, type: 'query' }); setError(''); }}
-                            style={{ flex: 1 }}
+                            style={{
+                                flex: 1,
+                                background: newRequest.type === 'query' ? 'var(--primary)' : 'transparent',
+                                color: newRequest.type === 'query' ? 'white' : '#64748b',
+                                border: 'none',
+                                boxShadow: newRequest.type === 'query' ? 'var(--shadow)' : 'none'
+                            }}
                         >
                             💬 General Query
                         </button>
                         <button
                             className={`btn ${newRequest.type === 'workload' ? '' : 'btn-secondary'}`}
                             onClick={() => { setNewRequest({ ...newRequest, type: 'workload' }); setError(''); }}
-                            style={{ flex: 1 }}
+                            style={{
+                                flex: 1,
+                                background: newRequest.type === 'workload' ? 'var(--primary)' : 'transparent',
+                                color: newRequest.type === 'workload' ? 'white' : '#64748b',
+                                border: 'none',
+                                boxShadow: newRequest.type === 'workload' ? 'var(--shadow)' : 'none'
+                            }}
                         >
                             📅 Workload Request
                         </button>
@@ -376,8 +419,10 @@ const FacultyDashboard = () => {
 
                     {/* General Query Form */}
                     {newRequest.type === 'query' && (
-                        <div className="card" style={{ padding: '2rem', borderTop: '4px solid #10b981' }}>
-                            <h2 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem', color: '#0f172a' }}>Ask a Query</h2>
+                        <div className="card premium-form-card" style={{ padding: '2rem' }}>
+                            <h2 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span>✉️</span> Ask a Query
+                            </h2>
                             <form onSubmit={handleQuerySubmit} className="form-grid">
                                 <div className="input-group">
                                     <label className="input-label">Subject</label>
@@ -412,15 +457,19 @@ const FacultyDashboard = () => {
                                         required
                                     />
                                 </div>
-                                <button type="submit" className="btn" style={{ gridColumn: 'span 2' }}>Submit Query</button>
+                                <button type="submit" className="btn btn-primary-gradient" style={{ gridColumn: 'span 2' }}>
+                                    Send Message →
+                                </button>
                             </form>
                         </div>
                     )}
 
                     {/* Workload Request Form */}
                     {newRequest.type === 'workload' && (
-                        <div className="card" style={{ padding: '2rem', borderTop: '4px solid #3b82f6' }}>
-                            <h2 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem', color: '#0f172a' }}>Submit Request</h2>
+                        <div className="card premium-form-card" style={{ padding: '2rem' }}>
+                            <h2 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span>📅</span> Submit Request
+                            </h2>
                             <form onSubmit={handleRequestSubmit} className="form-grid">
                                 <div className="input-group">
                                     <label className="input-label">Date</label>
@@ -486,7 +535,9 @@ const FacultyDashboard = () => {
                                         <option value="Other">Other</option>
                                     </select>
                                 </div>
-                                <button type="submit" className="btn" style={{ gridColumn: 'span 2' }}>Submit Request</button>
+                                <button type="submit" className="btn btn-primary-gradient" style={{ gridColumn: 'span 2' }}>
+                                    Submit Request →
+                                </button>
                             </form>
                         </div>
                     )}
@@ -497,9 +548,15 @@ const FacultyDashboard = () => {
 
                         {/* Queries List */}
                         {newRequest.type === 'query' && (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '400px', overflowY: 'auto' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', maxHeight: '400px', overflowY: 'auto', paddingRight: '0.5rem' }}>
                                 {queries.length > 0 ? queries.map(q => (
-                                    <div key={q._id} style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '1rem' }}>
+                                    <div key={q._id} style={{
+                                        borderRadius: '12px',
+                                        padding: '1.25rem',
+                                        background: 'white',
+                                        border: '1px solid #f1f5f9',
+                                        boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+                                    }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                                             <span style={{ fontWeight: '600' }}>{q.subject}</span>
                                             <span style={{
@@ -527,13 +584,14 @@ const FacultyDashboard = () => {
 
                         {/* Workload Requests List */}
                         {newRequest.type === 'workload' && (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '400px', overflowY: 'auto' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', maxHeight: '400px', overflowY: 'auto', paddingRight: '0.5rem' }}>
                                 {requests.length > 0 ? requests.map(req => (
                                     <div key={req._id} style={{
-                                        padding: '1rem',
-                                        borderRadius: '8px',
-                                        border: '1px solid #e2e8f0',
-                                        background: 'white'
+                                        padding: '1.25rem',
+                                        borderRadius: '12px',
+                                        background: 'white',
+                                        border: '1px solid #f1f5f9',
+                                        boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
                                     }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                                             <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
@@ -567,7 +625,7 @@ const FacultyDashboard = () => {
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 

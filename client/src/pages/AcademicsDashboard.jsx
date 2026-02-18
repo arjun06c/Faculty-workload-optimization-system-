@@ -542,14 +542,16 @@ const AcademicsDashboard = () => {
                     <div className="card" style={{ padding: '2rem' }}>
                         <h2 style={{ marginBottom: '1.5rem', color: '#1e293b' }}>Manage Workload Overload Requests</h2>
                         <div className="table-container">
-                            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '900px' }}>
                                 <thead>
-                                    <tr style={{ textAlign: 'left', borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>
-                                        <th style={{ padding: '1rem' }}>Faculty Member</th>
-                                        <th style={{ padding: '1rem' }}>Department</th>
-                                        <th style={{ padding: '1rem' }}>Reason for Request</th>
-                                        <th style={{ padding: '1rem' }}>Status</th>
-                                        <th style={{ padding: '1rem', textAlign: 'center' }}>Actions</th>
+                                    <tr style={{ textAlign: 'left', borderBottom: '2px solid #e2e8f0', color: '#64748b', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                        <th style={{ padding: '0.75rem 1rem' }}>Faculty Member</th>
+                                        <th style={{ padding: '0.75rem 1rem' }}>Department</th>
+                                        <th style={{ padding: '0.75rem 1rem' }}>Reason for Request</th>
+                                        <th style={{ padding: '0.75rem 1rem' }}>Status</th>
+                                        <th style={{ padding: '0.75rem 1rem', textAlign: 'center', width: '60px' }}>Edit</th>
+                                        <th style={{ padding: '0.75rem 1rem', textAlign: 'center', width: '60px' }}>Delete</th>
+                                        <th style={{ padding: '0.75rem 1rem', textAlign: 'center', width: '130px' }}>Auto Assign</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -560,11 +562,13 @@ const AcademicsDashboard = () => {
                                         else if (req.status === 'Approved' || req.status === 'Reassigned') { badgeColor = '#059669'; badgeBg = '#ecfdf5'; }
                                         else if (req.status === 'Rejected') { badgeColor = '#dc2626'; badgeBg = '#fef2f2'; }
 
+                                        const canReassign = req.status === 'Pending' || req.status === 'Escalated';
+
                                         return (
                                             <tr key={req._id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }} className="table-row-hover">
                                                 <td style={{ padding: '1rem', fontWeight: 'bold', color: '#334155' }}>{req.facultyId?.name}</td>
                                                 <td style={{ padding: '1rem', color: '#64748b' }}>{req.department?.name}</td>
-                                                <td style={{ padding: '1rem', color: '#64748b', maxWidth: '300px' }}>
+                                                <td style={{ padding: '1rem', color: '#64748b', maxWidth: '260px' }}>
                                                     {req.reason}
                                                     <div style={{ fontSize: '0.75rem', marginTop: '4px', color: '#94a3b8' }}>
                                                         {req.date ? new Date(req.date).toLocaleDateString() : ''}
@@ -586,48 +590,87 @@ const AcademicsDashboard = () => {
                                                         fontSize: '0.85rem',
                                                         fontWeight: '600',
                                                         color: badgeColor,
-                                                        background: badgeBg
+                                                        background: badgeBg,
+                                                        whiteSpace: 'nowrap'
                                                     }}>
                                                         {req.status}
                                                     </span>
                                                 </td>
-                                                <td style={{ padding: '1rem' }}>
-                                                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                                                        <button
-                                                            onClick={() => handleEditRequest(req)}
-                                                            className="btn btn-secondary"
-                                                            style={{ padding: '0.4rem', color: '#475569' }}
-                                                            title="Edit Request"
-                                                        >
-                                                            ✏️
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDeleteRequest(req._id)}
-                                                            className="btn btn-secondary"
-                                                            style={{ padding: '0.4rem', color: '#dc2626', background: '#fee2e2', border: 'none' }}
-                                                            title="Delete Request"
-                                                        >
-                                                            🗑️
-                                                        </button>
 
-                                                        {(req.status === 'Pending' || req.status === 'Escalated') && (
-                                                            <button
-                                                                onClick={() => handleSmartReassign(req._id)}
-                                                                className="btn"
-                                                                style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
-                                                                title="Find replacement and shift workload"
-                                                            >
-                                                                🚀 Auto Assign
-                                                            </button>
-                                                        )}
-                                                    </div>
+                                                {/* Edit Column */}
+                                                <td style={{ padding: '1rem', textAlign: 'center' }}>
+                                                    <button
+                                                        onClick={() => handleEditRequest(req)}
+                                                        title="Edit Request"
+                                                        style={{
+                                                            width: '36px', height: '36px', borderRadius: '8px',
+                                                            border: '1px solid #e2e8f0', background: '#f8fafc',
+                                                            cursor: 'pointer', fontSize: '1rem',
+                                                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                                            transition: 'all 0.2s'
+                                                        }}
+                                                        onMouseOver={e => { e.currentTarget.style.background = '#eff6ff'; e.currentTarget.style.borderColor = '#3b82f6'; }}
+                                                        onMouseOut={e => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
+                                                    >
+                                                        ✏️
+                                                    </button>
+                                                </td>
+
+                                                {/* Delete Column */}
+                                                <td style={{ padding: '1rem', textAlign: 'center' }}>
+                                                    <button
+                                                        onClick={() => handleDeleteRequest(req._id)}
+                                                        title="Delete Request"
+                                                        style={{
+                                                            width: '36px', height: '36px', borderRadius: '8px',
+                                                            border: '1px solid #fecaca', background: '#fef2f2',
+                                                            cursor: 'pointer', fontSize: '1rem',
+                                                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                                            transition: 'all 0.2s'
+                                                        }}
+                                                        onMouseOver={e => { e.currentTarget.style.background = '#fee2e2'; e.currentTarget.style.borderColor = '#f87171'; }}
+                                                        onMouseOut={e => { e.currentTarget.style.background = '#fef2f2'; e.currentTarget.style.borderColor = '#fecaca'; }}
+                                                    >
+                                                        🗑️
+                                                    </button>
+                                                </td>
+
+                                                {/* Auto Assign Column */}
+                                                <td style={{ padding: '1rem', textAlign: 'center' }}>
+                                                    {canReassign ? (
+                                                        <button
+                                                            onClick={() => handleSmartReassign(req._id)}
+                                                            title="Smart reassign: finds available faculty in same dept with capacity"
+                                                            style={{
+                                                                padding: '0.4rem 0.85rem',
+                                                                borderRadius: '8px',
+                                                                border: 'none',
+                                                                background: 'linear-gradient(135deg, #4f46e5, #3b82f6)',
+                                                                color: 'white',
+                                                                fontWeight: '600',
+                                                                fontSize: '0.78rem',
+                                                                cursor: 'pointer',
+                                                                whiteSpace: 'nowrap',
+                                                                display: 'inline-flex',
+                                                                alignItems: 'center',
+                                                                gap: '0.3rem',
+                                                                transition: 'opacity 0.2s'
+                                                            }}
+                                                            onMouseOver={e => e.currentTarget.style.opacity = '0.85'}
+                                                            onMouseOut={e => e.currentTarget.style.opacity = '1'}
+                                                        >
+                                                            🚀 Auto Assign
+                                                        </button>
+                                                    ) : (
+                                                        <span style={{ color: '#cbd5e1', fontSize: '0.8rem' }}>—</span>
+                                                    )}
                                                 </td>
                                             </tr>
                                         );
                                     })}
                                     {requests.length === 0 && (
                                         <tr>
-                                            <td colSpan="5" style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>No active requests found</td>
+                                            <td colSpan="7" style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>No active requests found</td>
                                         </tr>
                                     )}
                                 </tbody>
@@ -639,12 +682,16 @@ const AcademicsDashboard = () => {
 
             {view === 'queries' && (
                 <div className="split-panel-layout">
-                    {/* List of Queries */}
-                    <div className="card" style={{ padding: '0', overflow: 'hidden', height: '80vh', display: 'flex', flexDirection: 'column' }}>
-                        <div style={{ padding: '1.5rem', borderBottom: '1px solid #e2e8f0' }}>
-                            <h2 style={{ margin: 0, fontSize: '1.25rem', color: '#1e293b' }}>💬 Faculty Queries</h2>
+                    {/* Left: Queries Table */}
+                    <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
+                        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                            <h2 style={{ margin: 0, fontSize: '1.1rem', color: '#1e293b', fontWeight: '700' }}>💬 Faculty Queries</h2>
+                            <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', color: '#94a3b8' }}>{queries.length} total queries</p>
                         </div>
-                        <div style={{ overflowY: 'auto', flex: 1 }}>
+                        <div style={{ overflowY: 'auto', maxHeight: '75vh' }}>
+                            {queries.length === 0 && (
+                                <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>No queries found</div>
+                            )}
                             {queries.map(q => (
                                 <div
                                     key={q._id}
@@ -653,31 +700,34 @@ const AcademicsDashboard = () => {
                                         padding: '1rem 1.5rem',
                                         borderBottom: '1px solid #f1f5f9',
                                         cursor: 'pointer',
-                                        background: selectedQuery?._id === q._id ? '#f0f9ff' : 'white',
-                                        borderLeft: selectedQuery?._id === q._id ? '4px solid #3b82f6' : '4px solid transparent'
+                                        background: selectedQuery?._id === q._id ? '#eff6ff' : 'white',
+                                        borderLeft: selectedQuery?._id === q._id ? '4px solid #3b82f6' : '4px solid transparent',
+                                        transition: 'background 0.15s'
                                     }}
                                 >
-                                    <div style={{ display: 'flex', justifySelf: 'space-between', marginBottom: '0.25rem' }}>
-                                        <span style={{ fontWeight: '600', color: '#334155' }}>{q.facultyId?.name}</span>
-                                        <span style={{ fontSize: '0.75rem', color: '#94a3b8', marginLeft: 'auto' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
+                                        <span style={{ fontWeight: '700', color: '#1e293b', fontSize: '0.9rem' }}>{q.facultyId?.name}</span>
+                                        <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
                                             {new Date(q.createdAt).toLocaleDateString()}
                                         </span>
                                     </div>
-                                    <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.25rem' }}>
+                                    <div style={{ fontSize: '0.85rem', color: '#334155', marginBottom: '0.4rem', fontWeight: '500' }}>
                                         {q.subject}
                                     </div>
                                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                                         <span style={{
                                             fontSize: '0.7rem', padding: '2px 8px', borderRadius: '10px',
                                             background: q.priority === 'High' ? '#fee2e2' : '#fefce8',
-                                            color: q.priority === 'High' ? '#dc2626' : '#d97706'
+                                            color: q.priority === 'High' ? '#dc2626' : '#d97706',
+                                            fontWeight: '600'
                                         }}>
                                             {q.priority}
                                         </span>
                                         <span style={{
                                             fontSize: '0.7rem', padding: '2px 8px', borderRadius: '10px',
                                             background: q.status === 'Resolved' ? '#dcfce7' : '#f1f5f9',
-                                            color: q.status === 'Resolved' ? '#166534' : '#64748b'
+                                            color: q.status === 'Resolved' ? '#166534' : '#64748b',
+                                            fontWeight: '600'
                                         }}>
                                             {q.status}
                                         </span>
@@ -687,69 +737,124 @@ const AcademicsDashboard = () => {
                         </div>
                     </div>
 
-                    {/* Chat Area */}
-                    <div className="card" style={{ padding: '0', overflow: 'hidden', height: '80vh', display: 'flex', flexDirection: 'column' }}>
+                    {/* Right: Query Detail Form */}
+                    <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
                         {selectedQuery ? (
-                            <>
-                                <div style={{ padding: '1.5rem', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <div>
-                                        <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem' }}>{selectedQuery.subject}</h3>
-                                        <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>
-                                            From: <strong>{selectedQuery.facultyId?.name}</strong> • {selectedQuery.facultyId?.department?.name}
-                                        </p>
+                            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                                {/* Header */}
+                                <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                        <div>
+                                            <h3 style={{ margin: '0 0 0.4rem', color: '#0f172a', fontSize: '1.05rem' }}>{selectedQuery.subject}</h3>
+                                            <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b' }}>
+                                                From: <strong>{selectedQuery.facultyId?.name}</strong>
+                                                {selectedQuery.facultyId?.department?.name && ` • ${selectedQuery.facultyId.department.name}`}
+                                            </p>
+                                        </div>
+                                        {selectedQuery.status !== 'Resolved' && (
+                                            <button
+                                                onClick={() => handleResolveQuery(selectedQuery._id)}
+                                                style={{
+                                                    padding: '0.45rem 1rem', borderRadius: '8px', border: 'none',
+                                                    background: '#dcfce7', color: '#166534', fontWeight: '600',
+                                                    fontSize: '0.82rem', cursor: 'pointer', whiteSpace: 'nowrap'
+                                                }}
+                                            >
+                                                ✅ Mark Resolved
+                                            </button>
+                                        )}
                                     </div>
-                                    {selectedQuery.status !== 'Resolved' && (
-                                        <button onClick={() => handleResolveQuery(selectedQuery._id)} className="btn btn-secondary" style={{ fontSize: '0.85rem' }}>
-                                            ✅ Mark Resolved
-                                        </button>
+                                    {/* Meta info row */}
+                                    <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
+                                        <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                                            📅 <strong>Date:</strong> {new Date(selectedQuery.createdAt).toLocaleDateString()}
+                                        </span>
+                                        <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                                            🔔 <strong>Priority:</strong> {selectedQuery.priority}
+                                        </span>
+                                        <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                                            📌 <strong>Status:</strong> {selectedQuery.status}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Messages List */}
+                                <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', background: 'white' }}>
+                                    <h4 style={{ margin: '0 0 1rem', color: '#475569', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                        Conversation ({selectedQuery.messages?.length || 0} messages)
+                                    </h4>
+                                    {selectedQuery.messages && selectedQuery.messages.length > 0 ? (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                            {selectedQuery.messages.map((msg, idx) => (
+                                                <div key={idx} style={{
+                                                    padding: '0.85rem 1rem',
+                                                    borderRadius: '8px',
+                                                    border: '1px solid #e2e8f0',
+                                                    background: msg.sender === 'academic' ? '#eff6ff' : '#f8fafc',
+                                                    borderLeft: `3px solid ${msg.sender === 'academic' ? '#3b82f6' : '#94a3b8'}`
+                                                }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                                                        <span style={{
+                                                            fontSize: '0.75rem', fontWeight: '700',
+                                                            color: msg.sender === 'academic' ? '#1e40af' : '#475569',
+                                                            textTransform: 'uppercase'
+                                                        }}>
+                                                            {msg.sender === 'academic' ? '🏛️ Academics Office' : '👤 Faculty'}
+                                                        </span>
+                                                        <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                                                            {new Date(msg.time).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                                                        </span>
+                                                    </div>
+                                                    <p style={{ margin: 0, color: '#334155', fontSize: '0.9rem', lineHeight: '1.5' }}>{msg.text}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #e2e8f0' }}>
+                                            No messages yet
+                                        </div>
                                     )}
                                 </div>
-                                <div style={{ flex: 1, padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem', background: 'white' }}>
-                                    {selectedQuery.messages.map((msg, idx) => (
-                                        <div key={idx} style={{
-                                            maxWidth: '80%',
-                                            alignSelf: msg.sender === 'academic' ? 'flex-end' : 'flex-start',
-                                        }}>
-                                            <div style={{
-                                                padding: '0.75rem 1rem',
-                                                borderRadius: '12px',
-                                                background: msg.sender === 'academic' ? '#eff6ff' : '#f1f5f9',
-                                                color: msg.sender === 'academic' ? '#1e3a8a' : '#334155',
-                                                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                                                borderBottomRightRadius: msg.sender === 'academic' ? '4px' : '12px',
-                                                borderBottomLeftRadius: msg.sender === 'academic' ? '12px' : '4px',
-                                            }}>
-                                                {msg.text}
+
+                                {/* Reply Form */}
+                                {selectedQuery.status !== 'Resolved' && (
+                                    <div style={{ padding: '1.25rem 1.5rem', borderTop: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                                        <form onSubmit={handleReply}>
+                                            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '600', color: '#475569', marginBottom: '0.5rem' }}>
+                                                Reply to Faculty
+                                            </label>
+                                            <textarea
+                                                className="input-field"
+                                                rows={3}
+                                                style={{ width: '100%', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                                                placeholder="Type your response here..."
+                                                value={replyText}
+                                                onChange={(e) => setReplyText(e.target.value)}
+                                                required
+                                            />
+                                            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.75rem' }}>
+                                                <button type="submit" style={{
+                                                    padding: '0.5rem 1.5rem', borderRadius: '8px', border: 'none',
+                                                    background: 'linear-gradient(135deg, #4f46e5, #3b82f6)',
+                                                    color: 'white', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer'
+                                                }}>
+                                                    Send Reply →
+                                                </button>
                                             </div>
-                                            <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '0.25rem', textAlign: msg.sender === 'academic' ? 'right' : 'left' }}>
-                                                {new Date(msg.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                                <div style={{ padding: '1.5rem', borderTop: '1px solid #e2e8f0', background: 'white' }}>
-                                    <form onSubmit={handleReply} style={{ display: 'flex', gap: '1rem' }}>
-                                        <input
-                                            className="input-field"
-                                            style={{ flex: 1 }}
-                                            placeholder="Type a reply..."
-                                            value={replyText}
-                                            onChange={(e) => setReplyText(e.target.value)}
-                                            required
-                                        />
-                                        <button type="submit" className="btn">Send ➡️</button>
-                                    </form>
-                                </div>
-                            </>
+                                        </form>
+                                    </div>
+                                )}
+                            </div>
                         ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94a3b8' }}>
-                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>💬</div>
-                                <p>Select a query to view conversation</p>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: '400px', color: '#94a3b8' }}>
+                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📋</div>
+                                <p style={{ margin: 0, fontWeight: '500' }}>Select a query to view details</p>
                             </div>
                         )}
                     </div>
                 </div>
             )}
+
             {view === 'scheduledDetails' && (
                 <div style={{ padding: '1rem', minHeight: '600px' }}>
 

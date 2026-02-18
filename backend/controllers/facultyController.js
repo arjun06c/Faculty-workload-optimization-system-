@@ -23,12 +23,30 @@ exports.getMe = async (req, res) => {
 // @access  Faculty
 exports.getMyTimetable = async (req, res) => {
     try {
+        const { date } = req.query;
         const faculty = await Faculty.findOne({ userId: req.user.id });
         if (!faculty) {
             return res.status(404).json({ msg: 'Faculty profile not found' });
         }
 
-        const timetable = await Timetable.find({ facultyId: faculty._id })
+        let query = { facultyId: faculty._id };
+
+        // If a specific date is requested, filter by that date
+        // We match strictly on the date part or use a range to cover the full day
+        if (date) {
+            const startDate = new Date(date);
+            startDate.setHours(0, 0, 0, 0);
+
+            const endDate = new Date(date);
+            endDate.setHours(23, 59, 59, 999);
+
+            query.date = {
+                $gte: startDate,
+                $lte: endDate
+            };
+        }
+
+        const timetable = await Timetable.find(query)
             .populate('department', 'name')
             .sort({ day: 1, period: 1 });
 

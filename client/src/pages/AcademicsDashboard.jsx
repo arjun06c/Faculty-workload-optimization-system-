@@ -6,7 +6,8 @@ import { useAuth } from '../context/AuthContext';
 const AcademicsDashboard = () => {
     const { logout } = useAuth();
     const navigate = useNavigate();
-    const [view, setView] = useState('timetable'); // 'timetable' | 'requests'
+    const [view, setView] = useState('timetable'); // 'timetable' | 'requests' | 'queries' | 'scheduledDetails'
+    const [drillDown, setDrillDown] = useState({ step: 'depts', deptId: null, facultyId: null });
 
     // Timetable State
     const [departments, setDepartments] = useState([]);
@@ -25,11 +26,16 @@ const AcademicsDashboard = () => {
     // Queries State
     const [queries, setQueries] = useState([]);
     const [selectedQuery, setSelectedQuery] = useState(null);
-    const [replyText, setReplyText] = useState('');
+    // Scheduled Details State
+    const [officeFaculties, setOfficeFaculties] = useState([]);
+    const [officeFullDetails, setOfficeFullDetails] = useState(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [isEditingEntry, setIsEditingEntry] = useState(false);
+    const [editingEntryData, setEditingEntryData] = useState(null);
 
     useEffect(() => {
         fetchData();
-    }, [view]);
+    }, [view, drillDown.step, drillDown.deptId, drillDown.facultyId]);
 
     const fetchData = async () => {
         try {
@@ -66,6 +72,20 @@ const AcademicsDashboard = () => {
                 setQueries(queriesRes.data);
             } catch (err) {
                 console.error('Fetching queries failed:', err);
+            }
+        }
+
+        if (view === 'scheduledDetails') {
+            if (drillDown.step === 'faculties' && drillDown.deptId) {
+                try {
+                    const res = await api.get(`/academics/office/scheduled/${drillDown.deptId}`);
+                    setOfficeFaculties(res.data);
+                } catch (err) { console.error('Fetching office faculties failed:', err); }
+            } else if (drillDown.step === 'details' && drillDown.facultyId) {
+                try {
+                    const res = await api.get(`/academics/office/faculty/${drillDown.facultyId}`);
+                    setOfficeFullDetails(res.data);
+                } catch (err) { console.error('Fetching faculty full details failed:', err); }
             }
         }
     };
@@ -174,6 +194,29 @@ const AcademicsDashboard = () => {
         }
     };
 
+    const handleDeleteEntry = async (id) => {
+        if (!window.confirm('Are you sure you want to delete this schedule entry?')) return;
+        try {
+            await api.delete(`/academics/timetable/${id}`);
+            alert('Entry deleted successfully');
+            fetchData();
+        } catch (err) {
+            alert(err.response?.data?.msg || 'Error deleting entry');
+        }
+    };
+
+    const handleEditEntrySubmit = async (e) => {
+        e.preventDefault();
+        try {
+            await api.put(`/academics/timetable/${editingEntryData._id}`, editingEntryData);
+            alert('Entry updated successfully');
+            setIsEditingEntry(false);
+            fetchData();
+        } catch (err) {
+            alert(err.response?.data?.msg || 'Error updating entry');
+        }
+    };
+
 
     return (
         <div className="page-container" style={{ background: '#f8fafc', minHeight: '100vh' }}>
@@ -207,6 +250,43 @@ const AcademicsDashboard = () => {
                 >
                     💬 Faculty Queries
                 </button>
+                <button
+                    className={`btn ${view === 'scheduledDetails' ? '' : 'btn-secondary'}`}
+                    onClick={() => { setView('scheduledDetails'); setDrillDown({ step: 'depts', deptId: null, facultyId: null }); }}
+                    style={{ padding: '0.75rem 1.5rem', borderRadius: '8px', flex: '1 0 auto' }}
+                >
+                    📊 Scheduled Faculty Details
+                </button>
+            </div>
+
+            <div style={{ padding: '0 0.5rem', marginBottom: '2rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                    <span style={{ fontSize: '1.5rem' }}>📌</span>
+                    <h2 style={{ margin: 0, color: '#1e3a8a', fontSize: '1.4rem' }}>Scheduled Faculty</h2>
+                </div>
+                <div
+                    className="card"
+                    style={{
+                        padding: '1.5rem 2rem',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        cursor: 'pointer',
+                        borderLeft: '5px solid #3b82f6',
+                        background: view === 'scheduledDetails' ? '#eff6ff' : 'white'
+                    }}
+                    onClick={() => { setView('scheduledDetails'); setDrillDown({ step: 'depts', deptId: null, facultyId: null }); }}
+                >
+                    <div>
+                        <h3 style={{ margin: 0, color: '#1e293b' }}>View Department-wise Schedules</h3>
+                        <p style={{ margin: '0.25rem 0 0', color: '#64748b', fontSize: '0.9rem' }}>
+                            Explore scheduled faculty across CSE, ECE, IT, and MECH departments.
+                        </p>
+                    </div>
+                    <button className="btn btn-primary-gradient" style={{ borderRadius: '20px', padding: '0.5rem 1.5rem' }}>
+                        Browse Details →
+                    </button>
+                </div>
             </div>
 
             {view === 'timetable' && (
@@ -670,8 +750,380 @@ const AcademicsDashboard = () => {
                     </div>
                 </div>
             )}
+            {view === 'scheduledDetails' && (
+                <div style={{ padding: '1rem', minHeight: '600px' }}>
+
+                    {/* Breadcrumbs / Back Navigation */}
+                    <div style={{ marginBottom: '2rem', display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                        <button
+                            className="btn btn-secondary"
+                            style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}
+                            onClick={() => {
+                                if (drillDown.step === 'details') setDrillDown({ ...drillDown, step: 'faculties', facultyId: null });
+                                else if (drillDown.step === 'faculties') setDrillDown({ ...drillDown, step: 'depts', deptId: null });
+                            }}
+                            disabled={drillDown.step === 'depts'}
+                        >
+                            ← Back
+                        </button>
+                        <nav style={{ color: '#64748b', fontSize: '0.9rem', fontWeight: '500' }}>
+                            <span style={{ cursor: 'pointer' }} onClick={() => setDrillDown({ step: 'depts', deptId: null, facultyId: null })}>Departments</span>
+                            {drillDown.deptId && (
+                                <>
+                                    <span style={{ margin: '0 0.5rem' }}>/</span>
+                                    <span style={{ cursor: 'pointer' }} onClick={() => setDrillDown({ ...drillDown, step: 'faculties', facultyId: null })}>
+                                        {departments.find(d => d._id === drillDown.deptId)?.name || 'Faculty'}
+                                    </span>
+                                </>
+                            )}
+                            {drillDown.facultyId && (
+                                <>
+                                    <span style={{ margin: '0 0.5rem' }}>/</span>
+                                    <span style={{ color: '#1e3a8a' }}>{officeFullDetails?.profile?.name || 'Details'}</span>
+                                </>
+                            )}
+                        </nav>
+                    </div>
+
+                    {/* Step 1: Departments Selection */}
+                    {drillDown.step === 'depts' && (
+                        <div>
+                            <h2 style={{ marginBottom: '1.5rem', color: '#1e293b' }}>Select Department</h2>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
+                                {departments.map(dept => (
+                                    <div
+                                        key={dept._id}
+                                        className="card"
+                                        style={{
+                                            padding: '2rem',
+                                            textAlign: 'center',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s',
+                                            borderTop: '5px solid #3b82f6'
+                                        }}
+                                        onClick={() => setDrillDown({ step: 'faculties', deptId: dept._id, facultyId: null })}
+                                        onMouseOver={e => e.currentTarget.style.transform = 'translateY(-5px)'}
+                                        onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}
+                                    >
+                                        <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>🏢</div>
+                                        <h3 style={{ margin: 0, color: '#1e3a8a' }}>{dept.name}</h3>
+                                        <p style={{ color: '#64748b', marginTop: '0.5rem' }}>Click to view scheduled faculty</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Step 2: Faculty List in Department */}
+                    {drillDown.step === 'faculties' && (
+                        <div className="card" style={{ padding: '2rem' }}>
+                            <div className="flex-between-center" style={{ marginBottom: '1.5rem' }}>
+                                <h2 style={{ margin: 0, color: '#1e293b' }}>
+                                    {departments.find(d => d._id === drillDown.deptId)?.name} Faculty Workload
+                                </h2>
+                                <input
+                                    className="input-field"
+                                    style={{ width: '300px' }}
+                                    placeholder="Search faculty..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                            </div>
+                            <div className="table-container">
+                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                    <thead style={{ background: '#f8fafc' }}>
+                                        <tr style={{ textAlign: 'left', borderBottom: '2px solid #e2e8f0' }}>
+                                            <th style={{ padding: '1rem' }}>Faculty Name</th>
+                                            <th style={{ padding: '1rem' }}>Designation</th>
+                                            <th style={{ padding: '1rem' }}>Total Hours</th>
+                                            <th style={{ padding: '1rem' }}>Status</th>
+                                            <th style={{ padding: '1rem', textAlign: 'center' }}>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {officeFaculties.filter(f => f.name.toLowerCase().includes(searchQuery.toLowerCase())).map(f => {
+                                            const workloadPercentage = (f.currentHours / f.maxHours) * 100;
+                                            let status = 'Balanced';
+                                            let color = '#059669';
+                                            let bg = '#ecfdf5';
+
+                                            if (workloadPercentage >= 100) {
+                                                status = 'Overloaded';
+                                                color = '#dc2626';
+                                                bg = '#fef2f2';
+                                            } else if (workloadPercentage >= 80) {
+                                                status = 'Near Limit';
+                                                color = '#d97706';
+                                                bg = '#fff7ed';
+                                            }
+
+                                            return (
+                                                <tr key={f._id} className="table-row-hover" style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                                    <td style={{ padding: '1rem', fontWeight: '600' }}>{f.name}</td>
+                                                    <td style={{ padding: '1rem', color: '#64748b' }}>{f.designation}</td>
+                                                    <td style={{ padding: '1rem' }}>
+                                                        <span style={{ fontWeight: 'bold' }}>{f.currentHours}</span> / {f.maxHours}h
+                                                    </td>
+                                                    <td style={{ padding: '1rem' }}>
+                                                        <span style={{
+                                                            padding: '0.25rem 0.75rem', borderRadius: '20px', fontSize: '0.8rem', fontWeight: '600',
+                                                            background: bg, color: color
+                                                        }}>{status}</span>
+                                                    </td>
+                                                    <td style={{ padding: '1rem', textAlign: 'center' }}>
+                                                        <button
+                                                            className="btn btn-secondary"
+                                                            onClick={() => setDrillDown({ ...drillDown, step: 'details', facultyId: f._id })}
+                                                        >View Full Schedule</button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Step 3: Full Faculty Details */}
+                    {drillDown.step === 'details' && officeFullDetails && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                            {/* Profile Section */}
+                            <div className="card" style={{ padding: '2rem', borderLeft: '6px solid var(--primary)' }}>
+                                <div style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
+                                    <div style={{
+                                        width: '100px', height: '100px', borderRadius: '50%', background: '#eff6ff',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.5rem', color: '#3b82f6'
+                                    }}>
+                                        {officeFullDetails.profile.name.charAt(0)}
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                            <h2 style={{ margin: 0, color: '#1e3a8a' }}>{officeFullDetails.profile.name}</h2>
+                                            <span style={{
+                                                padding: '0.4rem 1rem', background: '#ecfdf5', color: '#059669', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold'
+                                            }}>Scheduled Profile</span>
+                                        </div>
+                                        <div className="form-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+                                            <div>
+                                                <label style={{ fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase' }}>Department</label>
+                                                <div style={{ fontWeight: '600', color: '#334155' }}>{officeFullDetails.profile.department?.name}</div>
+                                            </div>
+                                            <div>
+                                                <label style={{ fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase' }}>Designation</label>
+                                                <div style={{ fontWeight: '600', color: '#334155' }}>{officeFullDetails.profile.designation}</div>
+                                            </div>
+                                            <div>
+                                                <label style={{ fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase' }}>Email</label>
+                                                <div style={{ fontWeight: '600', color: '#334155' }}>{officeFullDetails.profile.userId?.email}</div>
+                                            </div>
+                                            <div>
+                                                <label style={{ fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase' }}>Employment</label>
+                                                <div style={{ fontWeight: '600', color: '#334155' }}>Full-Time</div>
+                                            </div>
+                                        </div>
+
+                                        <div style={{ marginTop: '1.5rem', padding: '1rem', background: '#f8fafc', borderRadius: '8px', display: 'flex', gap: '2rem' }}>
+                                            <div>
+                                                <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Current Workload</div>
+                                                <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#1e293b' }}>{officeFullDetails.profile.currentHours} / {officeFullDetails.profile.maxHours}h</div>
+                                            </div>
+                                            <div>
+                                                <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Remaining Hours</div>
+                                                <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#10b981' }}>
+                                                    {Math.max(0, officeFullDetails.profile.maxHours - officeFullDetails.profile.currentHours)}h
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Schedule Table Section */}
+                            <div className="card" style={{ padding: '2rem' }}>
+                                <h3 style={{ marginBottom: '1.5rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    📅 Faculty Schedule Table
+                                </h3>
+                                <div className="table-container">
+                                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                        <thead style={{ background: '#f8fafc' }}>
+                                            <tr style={{ textAlign: 'left', borderBottom: '2px solid #e2e8f0' }}>
+                                                <th style={{ padding: '1rem' }}>Date</th>
+                                                <th style={{ padding: '1rem' }}>Day</th>
+                                                <th style={{ padding: '1rem' }}>Period</th>
+                                                <th style={{ padding: '1rem' }}>Subject</th>
+                                                <th style={{ padding: '1rem' }}>Class / Year</th>
+                                                <th style={{ padding: '1rem' }}>Session</th>
+                                                <th style={{ padding: '1rem', textAlign: 'center' }}>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {officeFullDetails.timetable.length > 0 ? officeFullDetails.timetable.map(slot => (
+                                                <tr key={slot._id} className="table-row-hover" style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                                    <td style={{ padding: '1rem', color: '#334155' }}>{new Date(slot.date).toLocaleDateString('en-GB')}</td>
+                                                    <td style={{ padding: '1rem', color: '#334155' }}>{slot.day}</td>
+                                                    <td style={{ padding: '1rem', fontWeight: 'bold', color: '#1e3a8a' }}>{slot.period}</td>
+                                                    <td style={{ padding: '1rem', fontWeight: '500' }}>{slot.subject}</td>
+                                                    <td style={{ padding: '1rem', color: '#64748b' }}>{slot.classYear}</td>
+                                                    <td style={{ padding: '1rem' }}>
+                                                        <span style={{
+                                                            padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: '600',
+                                                            background: slot.type === 'Lab' ? '#fef3c7' : '#e0e7ff',
+                                                            color: slot.type === 'Lab' ? '#92400e' : '#3730a3'
+                                                        }}>{slot.type}</span>
+                                                    </td>
+                                                    <td style={{ padding: '1rem', textAlign: 'center' }}>
+                                                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                                                            <button
+                                                                className="btn btn-secondary"
+                                                                style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }}
+                                                                onClick={() => {
+                                                                    setEditingEntryData({
+                                                                        _id: slot._id,
+                                                                        facultyId: slot.facultyId._id || slot.facultyId,
+                                                                        subject: slot.subject,
+                                                                        day: slot.day,
+                                                                        period: slot.period,
+                                                                        classYear: slot.classYear,
+                                                                        roomNumber: slot.roomNumber,
+                                                                        type: slot.type,
+                                                                        date: new Date(slot.date).toISOString().split('T')[0]
+                                                                    });
+                                                                    setIsEditingEntry(true);
+                                                                }}
+                                                            >✏️</button>
+                                                            <button
+                                                                className="btn btn-secondary"
+                                                                style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', color: '#dc2626' }}
+                                                                onClick={() => handleDeleteEntry(slot._id)}
+                                                            >❌</button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )) : (
+                                                <tr>
+                                                    <td colSpan="7" style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>No scheduled classes found.</td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+            {/* Edit Entry Modal */}
+            {isEditingEntry && editingEntryData && (
+                <div className="modal-overlay" style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+                }}>
+                    <div className="card" style={{ width: '500px', padding: '2rem' }}>
+                        <h2 style={{ marginBottom: '1.5rem', color: '#1e3a8a' }}>✏️ Edit Timetable Entry</h2>
+                        <form onSubmit={handleEditEntrySubmit} className="form-grid">
+                            <div className="form-group">
+                                <label>Faculty Member</label>
+                                <select
+                                    className="input-field"
+                                    value={editingEntryData.facultyId}
+                                    onChange={(e) => setEditingEntryData({ ...editingEntryData, facultyId: e.target.value })}
+                                    required
+                                >
+                                    {facultyList.map(f => <option key={f._id} value={f._id}>{f.name}</option>)}
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Date</label>
+                                <input
+                                    type="date"
+                                    className="input-field"
+                                    value={editingEntryData.date}
+                                    onChange={(e) => setEditingEntryData({ ...editingEntryData, date: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Period (1-8)</label>
+                                <select
+                                    className="input-field"
+                                    value={editingEntryData.period}
+                                    onChange={(e) => setEditingEntryData({ ...editingEntryData, period: e.target.value })}
+                                    required
+                                >
+                                    {[1, 2, 3, 4, 5, 6, 7, 8].map(p => <option key={p} value={p}>{p}</option>)}
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Day</label>
+                                <select
+                                    className="input-field"
+                                    value={editingEntryData.day}
+                                    onChange={(e) => setEditingEntryData({ ...editingEntryData, day: e.target.value })}
+                                    required
+                                >
+                                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(d => <option key={d} value={d}>{d}</option>)}
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Subject</label>
+                                <input
+                                    className="input-field"
+                                    value={editingEntryData.subject}
+                                    onChange={(e) => setEditingEntryData({ ...editingEntryData, subject: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Room Number</label>
+                                <input
+                                    className="input-field"
+                                    value={editingEntryData.roomNumber}
+                                    onChange={(e) => setEditingEntryData({ ...editingEntryData, roomNumber: e.target.value })}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Type</label>
+                                <select
+                                    className="input-field"
+                                    value={editingEntryData.type}
+                                    onChange={(e) => setEditingEntryData({ ...editingEntryData, type: e.target.value })}
+                                >
+                                    <option value="Theory">Theory</option>
+                                    <option value="Lab">Lab</option>
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Class / Year</label>
+                                <select
+                                    className="input-field"
+                                    value={editingEntryData.classYear}
+                                    onChange={(e) => setEditingEntryData({ ...editingEntryData, classYear: e.target.value })}
+                                    required
+                                >
+                                    <option value="1st Year">1st Year</option>
+                                    <option value="2nd Year">2nd Year</option>
+                                    <option value="3rd Year">3rd Year</option>
+                                    <option value="4th Year">4th Year</option>
+                                </select>
+                            </div>
+                            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', gridColumn: 'span 2' }}>
+                                <button type="submit" className="btn btn-primary-gradient" style={{ flex: 1 }}>Save Changes</button>
+                                <button
+                                    type="button"
+                                    className="btn btn-secondary"
+                                    style={{ flex: 1 }}
+                                    onClick={() => setIsEditingEntry(false)}
+                                >Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
+
+
 
 export default AcademicsDashboard;

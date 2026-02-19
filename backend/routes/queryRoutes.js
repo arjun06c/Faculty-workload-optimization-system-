@@ -5,7 +5,9 @@ const {
     createQuery,
     getQueries,
     replyQuery,
-    updateQueryStatus
+    updateQueryStatus,
+    editQuery,
+    deleteQuery
 } = require('../controllers/queryController');
 
 // Create Query (Faculty)
@@ -19,5 +21,11 @@ router.post('/:id/reply', [auth, checkRole(['faculty', 'academics', 'admin'])], 
 
 // Update Status (Academics)
 router.put('/:id/status', [auth, checkRole(['academics', 'admin'])], updateQueryStatus);
+
+// Edit Query (Academics, Admin)
+router.put('/:id', [auth, checkRole(['academics', 'admin'])], editQuery);
+
+// Delete Query (Academics, Admin)
+router.delete('/:id', [auth, checkRole(['academics', 'admin'])], deleteQuery);
 
 module.exports = router;

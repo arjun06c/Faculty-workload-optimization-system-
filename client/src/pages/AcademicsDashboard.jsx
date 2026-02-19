@@ -26,6 +26,9 @@ const AcademicsDashboard = () => {
     // Queries State
     const [queries, setQueries] = useState([]);
     const [selectedQuery, setSelectedQuery] = useState(null);
+    const [replyText, setReplyText] = useState('');
+    const [isEditingQuery, setIsEditingQuery] = useState(false);
+    const [editingQueryData, setEditingQueryData] = useState(null);
     // Scheduled Details State
     const [officeFaculties, setOfficeFaculties] = useState([]);
     const [officeFullDetails, setOfficeFullDetails] = useState(null);
@@ -155,6 +158,38 @@ const AcademicsDashboard = () => {
             }
         } catch (err) {
             alert('Error resolving query');
+        }
+    };
+
+    const handleDeleteQuery = async (id) => {
+        if (!window.confirm('Are you sure you want to delete this query?')) return;
+        try {
+            await api.delete(`/queries/${id}`);
+            setQueries(queries.filter(q => q._id !== id));
+            if (selectedQuery && selectedQuery._id === id) setSelectedQuery(null);
+        } catch (err) {
+            alert('Error deleting query');
+        }
+    };
+
+    const handleEditQuerySubmit = async (e) => {
+        e.preventDefault();
+        try {
+            await api.put(`/queries/${editingQueryData._id}`, {
+                subject: editingQueryData.subject,
+                priority: editingQueryData.priority,
+                status: editingQueryData.status
+            });
+            const updatedQueries = await api.get('/queries');
+            setQueries(updatedQueries.data);
+            if (selectedQuery && selectedQuery._id === editingQueryData._id) {
+                const updated = updatedQueries.data.find(q => q._id === editingQueryData._id);
+                setSelectedQuery(updated || null);
+            }
+            setIsEditingQuery(false);
+            setEditingQueryData(null);
+        } catch (err) {
+            alert('Error updating query');
         }
     };
 
@@ -707,9 +742,33 @@ const AcademicsDashboard = () => {
                                 >
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
                                         <span style={{ fontWeight: '700', color: '#1e293b', fontSize: '0.9rem' }}>{q.facultyId?.name}</span>
-                                        <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-                                            {new Date(q.createdAt).toLocaleDateString()}
-                                        </span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                            <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                                                {new Date(q.createdAt).toLocaleDateString()}
+                                            </span>
+                                            {/* Edit Button */}
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setEditingQueryData({ ...q }); setIsEditingQuery(true); }}
+                                                title="Edit Query"
+                                                style={{
+                                                    width: '26px', height: '26px', borderRadius: '6px',
+                                                    border: '1px solid #e2e8f0', background: '#f8fafc',
+                                                    cursor: 'pointer', fontSize: '0.75rem',
+                                                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center'
+                                                }}
+                                            >✏️</button>
+                                            {/* Delete Button */}
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleDeleteQuery(q._id); }}
+                                                title="Delete Query"
+                                                style={{
+                                                    width: '26px', height: '26px', borderRadius: '6px',
+                                                    border: '1px solid #fecaca', background: '#fef2f2',
+                                                    cursor: 'pointer', fontSize: '0.75rem',
+                                                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center'
+                                                }}
+                                            >🗑️</button>
+                                        </div>
                                     </div>
                                     <div style={{ fontSize: '0.85rem', color: '#334155', marginBottom: '0.4rem', fontWeight: '500' }}>
                                         {q.subject}
@@ -734,6 +793,72 @@ const AcademicsDashboard = () => {
                                     </div>
                                 </div>
                             ))}
+
+                            {/* Edit Query Modal */}
+                            {isEditingQuery && editingQueryData && (
+                                <div style={{
+                                    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+                                }}
+                                    onClick={() => { setIsEditingQuery(false); setEditingQueryData(null); }}
+                                >
+                                    <div
+                                        style={{ background: 'white', borderRadius: '12px', padding: '2rem', width: '420px', maxWidth: '90vw', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}
+                                        onClick={e => e.stopPropagation()}
+                                    >
+                                        <h3 style={{ margin: '0 0 1.5rem', color: '#1e293b', fontSize: '1.1rem' }}>✏️ Edit Query</h3>
+                                        <form onSubmit={handleEditQuerySubmit}>
+                                            <div style={{ marginBottom: '1rem' }}>
+                                                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '600', color: '#475569', marginBottom: '0.4rem' }}>Subject</label>
+                                                <input
+                                                    className="input-field"
+                                                    style={{ width: '100%', boxSizing: 'border-box' }}
+                                                    value={editingQueryData.subject}
+                                                    onChange={e => setEditingQueryData({ ...editingQueryData, subject: e.target.value })}
+                                                    required
+                                                />
+                                            </div>
+                                            <div style={{ marginBottom: '1rem' }}>
+                                                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '600', color: '#475569', marginBottom: '0.4rem' }}>Priority</label>
+                                                <select
+                                                    className="input-field"
+                                                    style={{ width: '100%', boxSizing: 'border-box' }}
+                                                    value={editingQueryData.priority}
+                                                    onChange={e => setEditingQueryData({ ...editingQueryData, priority: e.target.value })}
+                                                >
+                                                    <option value="Low">Low</option>
+                                                    <option value="Medium">Medium</option>
+                                                    <option value="High">High</option>
+                                                </select>
+                                            </div>
+                                            <div style={{ marginBottom: '1.5rem' }}>
+                                                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '600', color: '#475569', marginBottom: '0.4rem' }}>Status</label>
+                                                <select
+                                                    className="input-field"
+                                                    style={{ width: '100%', boxSizing: 'border-box' }}
+                                                    value={editingQueryData.status}
+                                                    onChange={e => setEditingQueryData({ ...editingQueryData, status: e.target.value })}
+                                                >
+                                                    <option value="Pending">Pending</option>
+                                                    <option value="Resolved">Resolved</option>
+                                                </select>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '0.75rem' }}>
+                                                <button type="submit" style={{
+                                                    flex: 1, padding: '0.6rem', borderRadius: '8px', border: 'none',
+                                                    background: 'linear-gradient(135deg, #4f46e5, #3b82f6)',
+                                                    color: 'white', fontWeight: '600', cursor: 'pointer'
+                                                }}>Save Changes</button>
+                                                <button type="button" onClick={() => { setIsEditingQuery(false); setEditingQueryData(null); }} style={{
+                                                    flex: 1, padding: '0.6rem', borderRadius: '8px',
+                                                    border: '1px solid #e2e8f0', background: '#f8fafc',
+                                                    color: '#475569', fontWeight: '600', cursor: 'pointer'
+                                                }}>Cancel</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 

@@ -93,3 +93,41 @@ exports.updateQueryStatus = async (req, res) => {
         res.status(500).send('Server error');
     }
 };
+
+// @desc    Edit a query (subject, priority, status)
+// @route   PUT /api/queries/:id
+// @access  Academics, Admin
+exports.editQuery = async (req, res) => {
+    const { subject, priority, status } = req.body;
+
+    try {
+        const query = await Query.findById(req.params.id);
+        if (!query) return res.status(404).json({ msg: 'Query not found' });
+
+        if (subject !== undefined) query.subject = subject;
+        if (priority !== undefined) query.priority = priority;
+        if (status !== undefined) query.status = status;
+
+        await query.save();
+        res.json(query);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+};
+
+// @desc    Delete a query
+// @route   DELETE /api/queries/:id
+// @access  Academics, Admin
+exports.deleteQuery = async (req, res) => {
+    try {
+        const query = await Query.findById(req.params.id);
+        if (!query) return res.status(404).json({ msg: 'Query not found' });
+
+        await query.deleteOne();
+        res.json({ msg: 'Query deleted successfully' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+};

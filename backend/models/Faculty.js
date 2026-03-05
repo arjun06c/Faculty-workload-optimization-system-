@@ -19,6 +19,19 @@ const FacultySchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    facultyId: {
+        type: String,
+        unique: true,
+        sparse: true
+    },
+    joiningDate: {
+        type: Date,
+        default: Date.now
+    },
+    experience: {
+        type: Number,
+        default: 0
+    },
     skills: [{
         type: String // Array of subjects they can teach
     }],

@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
 exports.registerUser = async (req, res) => {
-    const { email, password, role, department } = req.body;
+    const { name, email, password, role, department } = req.body;
 
     try {
         let user = await User.findOne({ email });
@@ -12,6 +12,7 @@ exports.registerUser = async (req, res) => {
         }
 
         user = new User({
+            name,
             email,
             password,
             role,
@@ -26,7 +27,8 @@ exports.registerUser = async (req, res) => {
         const payload = {
             user: {
                 id: user.id,
-                role: user.role
+                role: user.role,
+                name: user.name
             }
         };
 
@@ -62,7 +64,8 @@ exports.loginUser = async (req, res) => {
         const payload = {
             user: {
                 id: user.id,
-                role: user.role
+                role: user.role,
+                name: user.name
             }
         };
 
@@ -72,7 +75,7 @@ exports.loginUser = async (req, res) => {
             { expiresIn: 360000 },
             (err, token) => {
                 if (err) throw err;
-                res.json({ token, role: user.role });
+                res.json({ token, role: user.role, name: user.name });
             }
         );
     } catch (err) {

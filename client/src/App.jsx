@@ -1,3 +1,4 @@
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -5,6 +6,7 @@ import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import AcademicsDashboard from './pages/AcademicsDashboard';
 import FacultyDashboard from './pages/FacultyDashboard';
+import FacultyDetails from './pages/FacultyDetails';
 import DepartmentDetails from './pages/DepartmentDetails';
 import FacultyTimetableView from './pages/FacultyTimetableView';
 import Unauthorized from './pages/Unauthorized';
@@ -31,8 +33,10 @@ function App() {
           {/* Faculty Routes */}
           <Route element={<ProtectedRoute allowedRoles={['faculty']} />}>
             <Route path="/faculty" element={<FacultyDashboard />} />
+            <Route path="/faculty/details" element={<FacultyDetails />} />
           </Route>
 
+          <Route path="/unauthorized" element={<Unauthorized />} />
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<div>404 Not Found</div>} />
         </Routes>

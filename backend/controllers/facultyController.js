@@ -1,17 +1,55 @@
 const Timetable = require('../models/Timetable');
 const WorkloadRequest = require('../models/WorkloadRequest');
 const Faculty = require('../models/Faculty');
+const User = require('../models/User');
 
 // @desc    Get logged-in faculty's details
 // @route   GET /api/faculty/me
 // @access  Faculty
 exports.getMe = async (req, res) => {
     try {
-        const faculty = await Faculty.findOne({ userId: req.user.id }).populate('department', 'name');
+        const faculty = await Faculty.findOne({ userId: req.user.id })
+            .populate('department', 'name')
+            .populate('userId', 'email name picture');
+
         if (!faculty) {
             return res.status(404).json({ msg: 'Faculty profile not found' });
         }
-        res.json(faculty);
+
+        // Fetch subjects assigned and classes handling from Timetable
+        const timetable = await Timetable.find({ facultyId: faculty._id });
+
+        const subjects = [...new Set(timetable.map(item => item.subject))];
+        const classes = [...new Set(timetable.map(item => item.classYear))];
+
+        res.json({
+            ...faculty.toObject(),
+            subjectsAssigned: subjects,
+            classesHandling: classes
+        });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+};
+
+// @desc    Update faculty profile (mobile and picture)
+// @route   PUT /api/faculty/update-profile
+// @access  Faculty
+exports.updateProfile = async (req, res) => {
+    const { phone, picture } = req.body;
+    try {
+        const faculty = await Faculty.findOne({ userId: req.user.id });
+        if (!faculty) return res.status(404).json({ msg: 'Faculty not found' });
+
+        if (phone) faculty.phone = phone;
+        await faculty.save();
+
+        if (picture) {
+            await User.findByIdAndUpdate(req.user.id, { picture });
+        }
+
+        res.json({ msg: 'Profile updated successfully', phone, picture });
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server error');
@@ -31,8 +69,6 @@ exports.getMyTimetable = async (req, res) => {
 
         let query = { facultyId: faculty._id };
 
-        // If a specific date is requested, filter by that date
-        // We match strictly on the date part or use a range to cover the full day
         if (date) {
             const startDate = new Date(date);
             startDate.setHours(0, 0, 0, 0);
@@ -61,16 +97,13 @@ exports.getMyTimetable = async (req, res) => {
 // @route   POST /api/faculty/workload-request
 // @access  Faculty
 exports.raiseWorkloadRequest = async (req, res) => {
-    const { reason, date, type, periods } = req.body; // type: 'SINGLE' | 'FULL_DAY'
+    const { reason, date, type, periods } = req.body;
 
     try {
         const faculty = await Faculty.findOne({ userId: req.user.id });
         if (!faculty) {
             return res.status(404).json({ msg: 'Faculty profile not found' });
         }
-
-        // For FULL_DAY, we might auto-fetch periods if not provided, 
-        // but for now, we assume frontend provides the periods array.
 
         const newRequest = new WorkloadRequest({
             facultyId: faculty._id,

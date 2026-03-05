@@ -15,24 +15,16 @@ export const AuthProvider = ({ children }) => {
             const token = localStorage.getItem('token');
             if (token) {
                 try {
-                    // Assuming we have a route to get current user. For now, rely on role stored or decode token?
-                    // Better to fetch user profile. 
-                    // Let's implement a verify endpoint or just decode if we stick to basic JWT.
-                    // But for security, let's fetch profile based on role.
-                    // Wait, we don't have a generic /api/auth/me. 
-                    // Admin has no profile fetch, only faculty.
-                    // Let's decode the token payload if possible, or just store role in localStorage for now (less secure but faster for prototype).
-                    // Actually, let's just proceed with what we have. API calls will fail if token invalid.
-
-                    // Decode token manually or trust localStorage for role until an API call fails.
                     const role = localStorage.getItem('role');
+                    const name = localStorage.getItem('name');
                     if (role) {
-                        setUser({ role });
+                        setUser({ role, name });
                     }
                 } catch (error) {
                     console.error("Auth load error", error);
                     localStorage.removeItem('token');
                     localStorage.removeItem('role');
+                    localStorage.removeItem('name');
                 }
             }
             setLoading(false);
@@ -45,7 +37,8 @@ export const AuthProvider = ({ children }) => {
             const res = await api.post('/auth/login', { email, password });
             localStorage.setItem('token', res.data.token);
             localStorage.setItem('role', res.data.role);
-            setUser({ role: res.data.role });
+            localStorage.setItem('name', res.data.name);
+            setUser({ role: res.data.role, name: res.data.name });
             return { success: true };
         } catch (error) {
             console.error("Login failed", error.response?.data);
@@ -56,6 +49,7 @@ export const AuthProvider = ({ children }) => {
     const logout = () => {
         localStorage.removeItem('token');
         localStorage.removeItem('role');
+        localStorage.removeItem('name');
         setUser(null);
     };
 

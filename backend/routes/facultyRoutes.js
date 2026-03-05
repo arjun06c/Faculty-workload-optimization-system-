@@ -5,12 +5,14 @@ const {
     getMe,
     getMyTimetable,
     raiseWorkloadRequest,
-    getMyWorkloadRequests
+    getMyWorkloadRequests,
+    updateProfile
 } = require('../controllers/facultyController');
 
 router.get('/me', [auth, checkRole(['faculty', 'admin', 'academics'])], getMe); // Allow admin to view generic profile if needed, but primary use is for faculty dashboard
 router.get('/timetable', [auth, checkRole(['faculty'])], getMyTimetable);
 router.post('/workload-request', [auth, checkRole(['faculty'])], raiseWorkloadRequest);
 router.get('/workload-requests', [auth, checkRole(['faculty'])], getMyWorkloadRequests);
+router.put('/update-profile', [auth, checkRole(['faculty'])], updateProfile);
 
 module.exports = router;

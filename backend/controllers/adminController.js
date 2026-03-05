@@ -74,7 +74,7 @@ exports.deleteDepartment = async (req, res) => {
 // @route   POST /api/admin/faculty
 // @access  Admin
 exports.addFaculty = async (req, res) => {
-    const { name, email, password, department, designation, phone, maxHours, skills } = req.body;
+    const { name, email, password, department, designation, phone, maxHours, skills, facultyId, joiningDate, experience } = req.body;
 
     try {
         // Check if user exists
@@ -85,6 +85,7 @@ exports.addFaculty = async (req, res) => {
 
         // Create User
         user = new User({
+            name,
             email,
             password,
             role: 'faculty',
@@ -101,6 +102,9 @@ exports.addFaculty = async (req, res) => {
             name,
             department,
             designation,
+            facultyId,
+            joiningDate,
+            experience,
             phone,
             maxHours: maxHours || 16,
             skills: skills || []
@@ -138,6 +142,7 @@ exports.addAcademicsUser = async (req, res) => {
         if (user) return res.status(400).json({ msg: 'User already exists' });
 
         user = new User({
+            name: 'Academics Office',
             email,
             password,
             role: 'academics'
@@ -190,7 +195,7 @@ exports.getFacultyByDepartment = async (req, res) => {
 // @route   PUT /api/admin/faculty/:id
 // @access  Admin
 exports.updateFaculty = async (req, res) => {
-    const { name, email, password, department, designation, phone, maxHours, skills } = req.body;
+    const { name, email, password, department, designation, phone, maxHours, skills, facultyId, joiningDate, experience } = req.body;
 
     try {
         let faculty = await Faculty.findById(req.params.id);
@@ -200,6 +205,9 @@ exports.updateFaculty = async (req, res) => {
         faculty.name = name || faculty.name;
         faculty.department = department || faculty.department;
         faculty.designation = designation || faculty.designation;
+        faculty.facultyId = facultyId || faculty.facultyId;
+        faculty.joiningDate = joiningDate || faculty.joiningDate;
+        faculty.experience = experience !== undefined ? experience : faculty.experience;
         faculty.phone = phone || faculty.phone;
         faculty.maxHours = maxHours || faculty.maxHours;
         faculty.skills = skills || faculty.skills;

@@ -359,7 +359,7 @@ const AcademicsDashboard = () => {
 
                             <div className="input-group">
                                 <label className="input-label">Faculty</label>
-                                <select className="input-field" value={newEntry.facultyId} onChange={(e) => setNewEntry({ ...newEntry, facultyId: e.target.value })} required>
+                                <select className="input-field" value={newEntry.facultyId} onChange={(e) => setNewEntry({ ...newEntry, facultyId: e.target.value, subject: '' })} required>
                                     <option value="">Select Faculty</option>
                                     {facultyList.filter(f => f.department?._id === newEntry.department).map(f => (
                                         <option key={f._id} value={f._id}>{f.name} ({f.currentHours}/{f.maxHours}h)</option>
@@ -369,7 +369,18 @@ const AcademicsDashboard = () => {
 
                             <div className="input-group">
                                 <label className="input-label">Subject Name</label>
-                                <input className="input-field" placeholder="e.g. Data Structures" value={newEntry.subject} onChange={(e) => setNewEntry({ ...newEntry, subject: e.target.value })} required />
+                                <select
+                                    className="input-field"
+                                    value={newEntry.subject}
+                                    onChange={(e) => setNewEntry({ ...newEntry, subject: e.target.value })}
+                                    required
+                                    disabled={!newEntry.facultyId}
+                                >
+                                    <option value="">{newEntry.facultyId ? "Select Subject" : "Select Faculty first"}</option>
+                                    {facultyList.find(f => f._id === newEntry.facultyId)?.skills?.map(skill => (
+                                        <option key={skill} value={skill}>{skill}</option>
+                                    ))}
+                                </select>
                             </div>
 
                             <div className="input-group">

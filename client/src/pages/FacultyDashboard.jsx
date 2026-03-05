@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 
@@ -20,6 +21,7 @@ const FacultyDashboard = () => {
         date: new Date().toISOString().split('T')[0],
         period: '',
         reason: '',
+        otherReason: '', // Added for custom reason
         type: 'SINGLE', // 'SINGLE' | 'FULL_DAY'
         periods: []
     });
@@ -85,18 +87,25 @@ const FacultyDashboard = () => {
 
             const payload = {
                 date: workloadForm.date,
-                reason: workloadForm.reason,
+                reason: workloadForm.reason === 'Other (Specify Reason)' ? workloadForm.otherReason : workloadForm.reason,
                 type: workloadForm.type,
                 periods: workloadForm.type === 'FULL_DAY'
                     ? [1, 2, 3, 4, 5, 6, 7, 8] // Assume all periods for now
                     : [parseInt(workloadForm.period)]
             };
 
+            // Double check validation for "Other"
+            if (workloadForm.reason === 'Other (Specify Reason)' && !workloadForm.otherReason.trim()) {
+                alert('Please specify the reason');
+                return;
+            }
+
             await api.post('/faculty/workload-request', payload);
             setWorkloadForm({
                 date: new Date().toISOString().split('T')[0],
                 period: '',
                 reason: '',
+                otherReason: '',
                 type: 'SINGLE',
                 periods: []
             });
@@ -172,26 +181,44 @@ const FacultyDashboard = () => {
             <div className="card faculty-profile-card" style={{ position: 'relative', overflow: 'hidden' }}>
                 <div className="faculty-profile-content" style={{ position: 'relative', zIndex: 1 }}>
                     <div className="faculty-profile-avatar animate-pulse-soft" style={{
-                        background: 'linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%)',
+                        background: facultyProfile?.picture ? `url(${facultyProfile.picture})` : 'linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%)',
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
                         border: '4px solid #f8fafc',
-                        boxShadow: '0 4px 12px rgba(79, 70, 229, 0.2)'
+                        boxShadow: '0 4px 12px rgba(79, 70, 229, 0.2)',
+                        overflow: 'hidden',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
                     }}>
-                        {facultyProfile?.name?.charAt(0) || 'F'}
+                        {!facultyProfile?.picture && (facultyProfile?.name?.charAt(0) || 'F')}
                     </div>
                     <div>
                         <h1 className="faculty-profile-heading" style={{ color: '#0f172a' }}>
                             Welcome, {facultyProfile?.name}
                         </h1>
-                        <div className="faculty-profile-details" style={{ marginTop: '0.75rem', gap: '1.5rem', color: '#64748b' }}>
+                        <div className="faculty-profile-details" style={{ marginTop: '0.75rem', display: 'flex', flexWrap: 'wrap', gap: '1.5rem', color: '#64748b' }}>
                             <span style={{ fontSize: '1rem', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 <span style={{ fontSize: '1.2rem' }}>💼</span> {facultyProfile?.designation || 'Faculty Member'}
                             </span>
                             <span style={{ fontSize: '1rem', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 <span style={{ fontSize: '1.2rem' }}>🏢</span> {facultyProfile?.department?.name || 'Department'}
                             </span>
-                            <span style={{ fontSize: '1rem', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <span style={{ fontSize: '1.2rem' }}>📧</span> {facultyProfile?.email}
-                            </span>
+                            <Link to="/faculty/details" style={{
+                                color: '#3b82f6',
+                                fontWeight: '600',
+                                textDecoration: 'none',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.4rem',
+                                padding: '0.25rem 0.75rem',
+                                background: '#eff6ff',
+                                borderRadius: '8px',
+                                border: '1px solid #dbeafe',
+                                transition: 'all 0.2s'
+                            }} className="hover:bg-blue-100">
+                                <span>📄</span> View Full Details
+                            </Link>
                         </div>
                     </div>
                 </div>
@@ -519,7 +546,7 @@ const FacultyDashboard = () => {
                                     </div>
                                 )}
 
-                                <div className="input-group" style={{ gridColumn: workloadForm.type === 'SINGLE' ? 'span 1' : 'span 2' }}>
+                                <div className="input-group" style={{ gridColumn: 'span 2' }}>
                                     <label className="input-label">Reason</label>
                                     <select
                                         className="input-field"
@@ -528,13 +555,35 @@ const FacultyDashboard = () => {
                                         required
                                     >
                                         <option value="">Select Reason</option>
-                                        <option value="Absent today">Absent today</option>
-                                        <option value="Not available this period">Not available this period</option>
-                                        <option value="Over workload">Over workload</option>
-                                        <option value="Need workload transfer">Need workload transfer</option>
-                                        <option value="Other">Other</option>
+                                        <option value="On Duty (OD) – Official Academic Work">On Duty (OD) – Official Academic Work</option>
+                                        <option value="Medical Leave">Medical Leave</option>
+                                        <option value="Personal Leave">Personal Leave</option>
+                                        <option value="Department Meeting / Administrative Work">Department Meeting / Administrative Work</option>
+                                        <option value="University / Examination Duty">University / Examination Duty</option>
+                                        <option value="Seminar / Workshop / Conference Participation">Seminar / Workshop / Conference Participation</option>
+                                        <option value="Research or Project Work">Research or Project Work</option>
+                                        <option value="Student Mentoring or Academic Counseling">Student Mentoring or Academic Counseling</option>
+                                        <option value="Over Workload – Request Redistribution">Over Workload – Request Redistribution</option>
+                                        <option value="Class Schedule Conflict">Class Schedule Conflict</option>
+                                        <option value="Not Available for This Period">Not Available for This Period</option>
+                                        <option value="Emergency Leave">Emergency Leave</option>
+                                        <option value="Other (Specify Reason)">Other (Specify Reason)</option>
                                     </select>
                                 </div>
+
+                                {workloadForm.reason === 'Other (Specify Reason)' && (
+                                    <div className="input-group" style={{ gridColumn: 'span 2' }}>
+                                        <label className="input-label">Specify Reason</label>
+                                        <input
+                                            type="text"
+                                            className="input-field"
+                                            placeholder="Type your custom reason here..."
+                                            value={workloadForm.otherReason}
+                                            onChange={(e) => setWorkloadForm({ ...workloadForm, otherReason: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+                                )}
                                 <button type="submit" className="btn btn-primary-gradient" style={{ gridColumn: 'span 2' }}>
                                     Submit Request →
                                 </button>

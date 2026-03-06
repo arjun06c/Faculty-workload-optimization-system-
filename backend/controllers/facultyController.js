@@ -139,3 +139,25 @@ exports.getMyWorkloadRequests = async (req, res) => {
         res.status(500).send('Server error');
     }
 };
+// @desc    Upload profile picture
+// @route   POST /api/faculty/upload-picture
+// @access  Faculty
+exports.uploadPicture = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ msg: 'Please upload a file' });
+        }
+
+        const pictureUrl = `/uploads/profile-pictures/${req.file.filename}`;
+
+        await User.findByIdAndUpdate(req.user.id, { picture: pictureUrl });
+
+        res.json({
+            msg: 'Profile picture uploaded successfully',
+            picture: pictureUrl
+        });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+};

@@ -34,7 +34,9 @@ const AdminDashboard = () => {
 
     // Fetch Faculty when view changes or selectedDeptId changes
     useEffect(() => {
-        if (view === 'faculty' || view === 'workload') {
+        if (view === 'departments') {
+            fetchAllFaculty();
+        } else if (view === 'faculty' || view === 'workload') {
             if (selectedDeptId) {
                 fetchFacultyByDept(selectedDeptId);
             } else {
@@ -331,8 +333,8 @@ const AdminDashboard = () => {
                         <h2 style={{ marginBottom: '1.5rem' }}>{isEditing ? '📝 Update Faculty Details' : '👤 Onboard New Faculty'}</h2>
                         <form onSubmit={handleAddFaculty} className="form-grid three-col">
                             <input className="input-field" placeholder="Full Name" value={newFaculty.name} onChange={(e) => setNewFaculty({ ...newFaculty, name: e.target.value })} required />
-                            <input type="email" className="input-field" placeholder="Email Address" value={newFaculty.email} onChange={(e) => setNewFaculty({ ...newFaculty, email: e.target.value })} required />
-                            <input type="password" className="input-field" placeholder={isEditing ? "New Password (leave blank to keep current)" : "Password"} value={newFaculty.password} onChange={(e) => setNewFaculty({ ...newFaculty, password: e.target.value })} required={!isEditing} />
+                            <input type="email" className="input-field" placeholder="Email Address" value={newFaculty.email} onChange={(e) => setNewFaculty({ ...newFaculty, email: e.target.value })} required autoComplete="off" />
+                            <input type="password" className="input-field" placeholder={isEditing ? "New Password (leave blank to keep current)" : "Password"} value={newFaculty.password} onChange={(e) => setNewFaculty({ ...newFaculty, password: e.target.value })} required={!isEditing} autoComplete="new-password" />
 
                             <select className="input-field" value={newFaculty.department} onChange={(e) => setNewFaculty({ ...newFaculty, department: e.target.value })} required>
                                 <option value="">Select Department</option>
@@ -467,6 +469,7 @@ const AdminDashboard = () => {
                                 onChange={(e) => setNewAcademics({ ...newAcademics, email: e.target.value })}
                                 required
                                 style={{ flex: 1, minWidth: '200px' }}
+                                autoComplete="off"
                             />
                             <input
                                 type="password"
@@ -476,6 +479,7 @@ const AdminDashboard = () => {
                                 onChange={(e) => setNewAcademics({ ...newAcademics, password: e.target.value })}
                                 required
                                 style={{ flex: 1, minWidth: '200px' }}
+                                autoComplete="new-password"
                             />
                             <button type="submit" className="btn">Create Account</button>
                         </form>

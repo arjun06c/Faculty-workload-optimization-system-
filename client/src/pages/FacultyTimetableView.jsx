@@ -75,10 +75,12 @@ const FacultyTimetableView = () => {
         });
     };
 
-    if (loading) return <div className="page-container">Loading Faculty Timetable...</div>;
-    if (!faculty) return <div className="page-container">Faculty not found.</div>;
+    // Removed early block to allow immediate layout render
+    if (!loading && !faculty) return <div className="page-container">Faculty not found.</div>;
 
-    const workloadPercentage = (faculty.currentHours / faculty.maxHours) * 100;
+    const currentHours = faculty?.currentHours || 0;
+    const maxHours = faculty?.maxHours || 16;
+    const workloadPercentage = (currentHours / maxHours) * 100;
     let statusColor = '#10b981';
     if (workloadPercentage >= 100) statusColor = '#ef4444';
     else if (workloadPercentage >= 80) statusColor = '#f59e0b';
@@ -98,32 +100,55 @@ const FacultyTimetableView = () => {
                     gap: '1.5rem'
                 }}>
                     <div>
-                        <h1 style={{ margin: 0, color: '#1e3a8a', fontSize: '2rem' }}>{faculty.name}</h1>
-                        <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.75rem', color: '#64748b', fontSize: '1rem', flexWrap: 'wrap' }}>
-                            <span><strong>Designation:</strong> {faculty.designation}</span>
-                            <span><strong>Department:</strong> {faculty.department?.name}</span>
-                            <span><strong>Email:</strong> {faculty.userId?.email}</span>
-                        </div>
+                        {loading ? (
+                            <div className="animate-pulse space-y-3">
+                                <div className="h-8 bg-slate-200 rounded w-64"></div>
+                                <div className="flex gap-4">
+                                    <div className="h-4 bg-slate-200 rounded w-40"></div>
+                                    <div className="h-4 bg-slate-200 rounded w-32"></div>
+                                    <div className="h-4 bg-slate-200 rounded w-48"></div>
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                <h1 style={{ margin: 0, color: '#1e3a8a', fontSize: '2rem' }}>{faculty?.name}</h1>
+                                <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.75rem', color: '#64748b', fontSize: '1rem', flexWrap: 'wrap' }}>
+                                    <span><strong>Designation:</strong> {faculty?.designation}</span>
+                                    <span><strong>Department:</strong> {faculty?.department?.name}</span>
+                                    <span><strong>Email:</strong> {faculty?.userId?.email}</span>
+                                </div>
+                            </>
+                        )}
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.5rem' }}>Workload Status</div>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                            <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: statusColor }}>
-                                {faculty.currentHours} / {faculty.maxHours}h
-                            </span>
-                        </div>
-                        <div style={{
-                            fontSize: '0.8rem',
-                            padding: '0.25rem 0.75rem',
-                            borderRadius: '1rem',
-                            background: workloadPercentage >= 100 ? '#fef2f2' : workloadPercentage >= 80 ? '#fffbeb' : '#ecfdf5',
-                            color: statusColor,
-                            fontWeight: '600',
-                            display: 'inline-block',
-                            marginTop: '0.25rem'
-                        }}>
-                            {workloadPercentage >= 100 ? 'Overloaded' : workloadPercentage >= 80 ? 'Near Capacity' : 'Available'}
-                        </div>
+                        {loading ? (
+                            <div className="animate-pulse flex flex-col items-end space-y-2">
+                                <div className="h-3 bg-slate-200 rounded w-24"></div>
+                                <div className="h-6 bg-slate-200 rounded w-32"></div>
+                                <div className="h-5 bg-slate-200 rounded-full w-24"></div>
+                            </div>
+                        ) : (
+                            <>
+                                <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.5rem' }}>Workload Status</div>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                                    <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: statusColor }}>
+                                        {currentHours} / {maxHours}h
+                                    </span>
+                                </div>
+                                <div style={{
+                                    fontSize: '0.8rem',
+                                    padding: '0.25rem 0.75rem',
+                                    borderRadius: '1rem',
+                                    background: workloadPercentage >= 100 ? '#fef2f2' : workloadPercentage >= 80 ? '#fffbeb' : '#ecfdf5',
+                                    color: statusColor,
+                                    fontWeight: '600',
+                                    display: 'inline-block',
+                                    marginTop: '0.25rem'
+                                }}>
+                                    {workloadPercentage >= 100 ? 'Overloaded' : workloadPercentage >= 80 ? 'Near Capacity' : 'Available'}
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>
@@ -207,7 +232,12 @@ const FacultyTimetableView = () => {
                                                 verticalAlign: 'top',
                                                 minHeight: '80px'
                                             }}>
-                                                {slot ? (
+                                                {loading ? (
+                                                    <div className="animate-pulse space-y-2">
+                                                        <div className="h-4 bg-slate-200 rounded w-full"></div>
+                                                        <div className="h-3 bg-slate-100 rounded w-2/3"></div>
+                                                    </div>
+                                                ) : slot ? (
                                                     <div style={{ fontSize: '0.85rem' }}>
                                                         <div style={{
                                                             fontWeight: '600',

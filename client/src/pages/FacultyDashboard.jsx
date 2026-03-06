@@ -155,9 +155,7 @@ const FacultyDashboard = () => {
         });
     };
 
-    if (loading) return <div className="page-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
-        <div className="loader">Loading Dashboard...</div>
-    </div>;
+    // Removed early loading return to allow instant layout render
 
     if (error) return (
         <div className="page-container">
@@ -194,32 +192,44 @@ const FacultyDashboard = () => {
                         {!facultyProfile?.picture && (facultyProfile?.name?.charAt(0) || 'F')}
                     </div>
                     <div>
-                        <h1 className="faculty-profile-heading" style={{ color: '#0f172a' }}>
-                            Welcome, {facultyProfile?.name}
-                        </h1>
-                        <div className="faculty-profile-details" style={{ marginTop: '0.75rem', display: 'flex', flexWrap: 'wrap', gap: '1.5rem', color: '#64748b' }}>
-                            <span style={{ fontSize: '1rem', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <span style={{ fontSize: '1.2rem' }}>💼</span> {facultyProfile?.designation || 'Faculty Member'}
-                            </span>
-                            <span style={{ fontSize: '1rem', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <span style={{ fontSize: '1.2rem' }}>🏢</span> {facultyProfile?.department?.name || 'Department'}
-                            </span>
-                            <Link to="/faculty/details" style={{
-                                color: '#3b82f6',
-                                fontWeight: '600',
-                                textDecoration: 'none',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.4rem',
-                                padding: '0.25rem 0.75rem',
-                                background: '#eff6ff',
-                                borderRadius: '8px',
-                                border: '1px solid #dbeafe',
-                                transition: 'all 0.2s'
-                            }} className="hover:bg-blue-100">
-                                <span>📄</span> View Full Details
-                            </Link>
-                        </div>
+                        {loading ? (
+                            <div className="animate-pulse flex flex-col gap-2">
+                                <div className="h-8 bg-slate-200 rounded w-48 mb-2"></div>
+                                <div className="flex gap-4">
+                                    <div className="h-5 bg-slate-200 rounded w-32"></div>
+                                    <div className="h-5 bg-slate-200 rounded w-32"></div>
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                <h1 className="faculty-profile-heading" style={{ color: '#0f172a' }}>
+                                    Welcome, {facultyProfile?.name}
+                                </h1>
+                                <div className="faculty-profile-details" style={{ marginTop: '0.75rem', display: 'flex', flexWrap: 'wrap', gap: '1.5rem', color: '#64748b' }}>
+                                    <span style={{ fontSize: '1rem', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <span style={{ fontSize: '1.2rem' }}>💼</span> {facultyProfile?.designation || 'Faculty Member'}
+                                    </span>
+                                    <span style={{ fontSize: '1rem', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <span style={{ fontSize: '1.2rem' }}>🏢</span> {facultyProfile?.department?.name || 'Department'}
+                                    </span>
+                                    <Link to="/faculty/details" style={{
+                                        color: '#3b82f6',
+                                        fontWeight: '600',
+                                        textDecoration: 'none',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.4rem',
+                                        padding: '0.25rem 0.75rem',
+                                        background: '#eff6ff',
+                                        borderRadius: '8px',
+                                        border: '1px solid #dbeafe',
+                                        transition: 'all 0.2s'
+                                    }} className="hover:bg-blue-100">
+                                        <span>📄</span> View Full Details
+                                    </Link>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
                 <button onClick={logout} className="btn btn-secondary faculty-signout-btn" style={{
@@ -246,33 +256,43 @@ const FacultyDashboard = () => {
                             </span>
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '0.5rem', marginBottom: '1rem' }}>
-                            <span style={{ fontSize: '2.5rem', fontWeight: '800', color: '#1e293b', lineHeight: 1 }}>
-                                {facultyProfile.currentHours}
-                            </span>
-                            <span style={{ fontSize: '1rem', color: '#64748b', marginBottom: '0.4rem' }}>
-                                / {facultyProfile.maxHours} weekly hours
-                            </span>
-                        </div>
+                        {loading ? (
+                            <div className="animate-pulse">
+                                <div className="h-10 bg-slate-200 rounded w-24 mb-4"></div>
+                                <div className="h-3 bg-slate-200 rounded w-full mb-2"></div>
+                                <div className="h-3 bg-slate-200 rounded w-full"></div>
+                            </div>
+                        ) : (
+                            <>
+                                <div style={{ display: 'flex', alignItems: 'flex-end', gap: '0.5rem', marginBottom: '1rem' }}>
+                                    <span style={{ fontSize: '2.5rem', fontWeight: '800', color: '#1e293b', lineHeight: 1 }}>
+                                        {facultyProfile?.currentHours || 0}
+                                    </span>
+                                    <span style={{ fontSize: '1rem', color: '#64748b', marginBottom: '0.4rem' }}>
+                                        / {facultyProfile?.maxHours || 16} weekly hours
+                                    </span>
+                                </div>
 
-                        <div style={{ width: '100%', height: '12px', background: '#f1f5f9', borderRadius: '6px', overflow: 'hidden', marginBottom: '1.25rem', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)' }}>
-                            <div style={{
-                                width: `${Math.min(workloadPercentage, 100)}%`,
-                                height: '100%',
-                                background: workloadPercentage >= 100
-                                    ? 'linear-gradient(90deg, #ef4444, #b91c1c)'
-                                    : (workloadPercentage >= 80 ? 'linear-gradient(90deg, #f59e0b, #d97706)' : 'linear-gradient(90deg, #10b981, #059669)'),
-                                borderRadius: '6px',
-                                transition: 'width 1.5s cubic-bezier(0.34, 1.56, 0.64, 1)'
-                            }}></div>
-                        </div>
-                        <div style={{ fontSize: '0.8rem', color: '#64748b', display: 'flex', justifyContent: 'space-between' }}>
-                            <span>0%</span>
-                            <span style={{ fontWeight: '600', color: workloadPercentage >= 100 ? '#dc2626' : '#64748b' }}>
-                                {workloadPercentage >= 100 ? 'Limit Exceeded' : (workloadPercentage >= 80 ? 'Approaching Limit' : 'Optimal Workload')}
-                            </span>
-                            <span>100%</span>
-                        </div>
+                                <div style={{ width: '100%', height: '12px', background: '#f1f5f9', borderRadius: '6px', overflow: 'hidden', marginBottom: '1.25rem', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)' }}>
+                                    <div style={{
+                                        width: `${Math.min(workloadPercentage || 0, 100)}%`,
+                                        height: '100%',
+                                        background: workloadPercentage >= 100
+                                            ? 'linear-gradient(90deg, #ef4444, #b91c1c)'
+                                            : (workloadPercentage >= 80 ? 'linear-gradient(90deg, #f59e0b, #d97706)' : 'linear-gradient(90deg, #10b981, #059669)'),
+                                        borderRadius: '6px',
+                                        transition: 'width 1.5s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                                    }}></div>
+                                </div>
+                                <div style={{ fontSize: '0.8rem', color: '#64748b', display: 'flex', justifyContent: 'space-between' }}>
+                                    <span>0%</span>
+                                    <span style={{ fontWeight: '600', color: workloadPercentage >= 100 ? '#dc2626' : '#64748b' }}>
+                                        {workloadPercentage >= 100 ? 'Limit Exceeded' : (workloadPercentage >= 80 ? 'Approaching Limit' : 'Optimal Workload')}
+                                    </span>
+                                    <span>100%</span>
+                                </div>
+                            </>
+                        )}
                     </div>
 
                     {/* Timetable Grid with Toggle */}
@@ -310,7 +330,13 @@ const FacultyDashboard = () => {
                             </div>
                         </div>
 
-                        {viewMode === 'daily' ? (
+                        {loading ? (
+                            <div className="animate-pulse space-y-4">
+                                {[1, 2, 3].map(i => (
+                                    <div key={i} className="h-24 bg-slate-100 rounded-xl"></div>
+                                ))}
+                            </div>
+                        ) : viewMode === 'daily' ? (
                             <div className="table-container">
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                     {timetable.length > 0 ? timetable.map(session => (
@@ -595,81 +621,91 @@ const FacultyDashboard = () => {
                     <div className="card" style={{ padding: '2rem', flex: 1 }}>
                         <h2 style={{ margin: '0 0 1.5rem 0', fontSize: '1.25rem', color: '#0f172a' }}>History & Status</h2>
 
-                        {/* Queries List */}
-                        {newRequest.type === 'query' && (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', maxHeight: '400px', overflowY: 'auto', paddingRight: '0.5rem' }}>
-                                {queries.length > 0 ? queries.map(q => (
-                                    <div key={q._id} style={{
-                                        borderRadius: '12px',
-                                        padding: '1.25rem',
-                                        background: 'white',
-                                        border: '1px solid #f1f5f9',
-                                        boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
-                                    }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                            <span style={{ fontWeight: '600' }}>{q.subject}</span>
-                                            <span style={{
-                                                fontSize: '0.75rem', padding: '2px 8px', borderRadius: '12px',
-                                                background: q.status === 'Resolved' ? '#dcfce7' : '#ffedd5',
-                                                color: q.status === 'Resolved' ? '#166534' : '#9a3412'
-                                            }}>{q.status}</span>
-                                        </div>
-                                        <div style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '1rem' }}>
-                                            {q.messages[q.messages.length - 1]?.text}
-                                        </div>
-                                        {/* Simple Chat View (Last 2 messages) */}
-                                        <div style={{ background: '#f8fafc', padding: '0.5rem', borderRadius: '4px', fontSize: '0.85rem' }}>
-                                            {q.messages.map((msg, idx) => (
-                                                <div key={idx} style={{ marginBottom: '0.25rem', textAlign: msg.sender === 'faculty' ? 'right' : 'left' }}>
-                                                    <span style={{ fontWeight: 'bold' }}>{msg.sender === 'faculty' ? 'You' : 'Admin'}: </span>
-                                                    {msg.text}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )) : <p style={{ color: '#94a3b8', textAlign: 'center' }}>No queries found.</p>}
+                        {loading ? (
+                            <div className="animate-pulse space-y-4">
+                                {[1, 2].map(i => (
+                                    <div key={i} className="h-24 bg-slate-100 rounded-xl"></div>
+                                ))}
                             </div>
-                        )}
-
-                        {/* Workload Requests List */}
-                        {newRequest.type === 'workload' && (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', maxHeight: '400px', overflowY: 'auto', paddingRight: '0.5rem' }}>
-                                {requests.length > 0 ? requests.map(req => (
-                                    <div key={req._id} style={{
-                                        padding: '1.25rem',
-                                        borderRadius: '12px',
-                                        background: 'white',
-                                        border: '1px solid #f1f5f9',
-                                        boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
-                                    }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                            <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                                                {req.date ? new Date(req.date).toLocaleDateString() : 'General'}
-                                                {/* Show Periods */}
-                                                {req.type === 'FULL_DAY'
-                                                    ? ' • Full Day'
-                                                    : (req.periods && req.periods.length > 0 ? ` • P${req.periods.join(', ')}` : '')
-                                                }
-                                            </span>
-                                            <span style={{
-                                                fontSize: '0.75rem', fontWeight: '600', padding: '2px 8px', borderRadius: '12px',
-                                                background: req.status === 'Approved' || req.status === 'Reassigned' ? '#dcfce7' : '#fff7ed',
-                                                color: req.status === 'Approved' || req.status === 'Reassigned' ? '#166534' : '#9a3412'
+                        ) : (
+                            <>
+                                {/* Queries List */}
+                                {newRequest.type === 'query' && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', maxHeight: '400px', overflowY: 'auto', paddingRight: '0.5rem' }}>
+                                        {queries.length > 0 ? queries.map(q => (
+                                            <div key={q._id} style={{
+                                                borderRadius: '12px',
+                                                padding: '1.25rem',
+                                                background: 'white',
+                                                border: '1px solid #f1f5f9',
+                                                boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
                                             }}>
-                                                {req.status}
-                                            </span>
-                                        </div>
-                                        <div style={{ fontWeight: '500', color: '#334155' }}>
-                                            {req.reason}
-                                        </div>
-                                        {req.decisionLog && (
-                                            <div style={{ marginTop: '0.5rem', padding: '0.5rem', background: '#eff6ff', borderRadius: '4px', fontSize: '0.8rem', color: '#1e40af' }}>
-                                                <strong>Admin:</strong> {req.decisionLog}
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                                    <span style={{ fontWeight: '600' }}>{q.subject}</span>
+                                                    <span style={{
+                                                        fontSize: '0.75rem', padding: '2px 8px', borderRadius: '12px',
+                                                        background: q.status === 'Resolved' ? '#dcfce7' : '#ffedd5',
+                                                        color: q.status === 'Resolved' ? '#166534' : '#9a3412'
+                                                    }}>{q.status}</span>
+                                                </div>
+                                                <div style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '1rem' }}>
+                                                    {q.messages[q.messages.length - 1]?.text}
+                                                </div>
+                                                {/* Simple Chat View (Last 2 messages) */}
+                                                <div style={{ background: '#f8fafc', padding: '0.5rem', borderRadius: '4px', fontSize: '0.85rem' }}>
+                                                    {q.messages.map((msg, idx) => (
+                                                        <div key={idx} style={{ marginBottom: '0.25rem', textAlign: msg.sender === 'faculty' ? 'right' : 'left' }}>
+                                                            <span style={{ fontWeight: 'bold' }}>{msg.sender === 'faculty' ? 'You' : 'Admin'}: </span>
+                                                            {msg.text}
+                                                        </div>
+                                                    ))}
+                                                </div>
                                             </div>
-                                        )}
+                                        )) : <p style={{ color: '#94a3b8', textAlign: 'center' }}>No queries found.</p>}
                                     </div>
-                                )) : <p style={{ color: '#94a3b8', textAlign: 'center' }}>No requests found.</p>}
-                            </div>
+                                )}
+
+                                {/* Workload Requests List */}
+                                {newRequest.type === 'workload' && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', maxHeight: '400px', overflowY: 'auto', paddingRight: '0.5rem' }}>
+                                        {requests.length > 0 ? requests.map(req => (
+                                            <div key={req._id} style={{
+                                                padding: '1.25rem',
+                                                borderRadius: '12px',
+                                                background: 'white',
+                                                border: '1px solid #f1f5f9',
+                                                boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
+                                            }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                                    <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                                                        {req.date ? new Date(req.date).toLocaleDateString() : 'General'}
+                                                        {/* Show Periods */}
+                                                        {req.type === 'FULL_DAY'
+                                                            ? ' • Full Day'
+                                                            : (req.periods && req.periods.length > 0 ? ` • P${req.periods.join(', ')}` : '')
+                                                        }
+                                                    </span>
+                                                    <span style={{
+                                                        fontSize: '0.75rem', fontWeight: '600', padding: '2px 8px', borderRadius: '12px',
+                                                        background: req.status === 'Approved' || req.status === 'Reassigned' ? '#dcfce7' : '#fff7ed',
+                                                        color: req.status === 'Approved' || req.status === 'Reassigned' ? '#166534' : '#9a3412'
+                                                    }}>
+                                                        {req.status}
+                                                    </span>
+                                                </div>
+                                                <div style={{ fontWeight: '500', color: '#334155' }}>
+                                                    {req.reason}
+                                                </div>
+                                                {req.decisionLog && (
+                                                    <div style={{ marginTop: '0.5rem', padding: '0.5rem', background: '#eff6ff', borderRadius: '4px', fontSize: '0.8rem', color: '#1e40af' }}>
+                                                        <strong>Admin:</strong> {req.decisionLog}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )) : <p style={{ color: '#94a3b8', textAlign: 'center' }}>No requests found.</p>}
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
                 </div>

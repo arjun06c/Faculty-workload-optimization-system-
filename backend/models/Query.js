@@ -17,7 +17,7 @@ const QuerySchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['Pending', 'Resolved'],
+        enum: ['Pending', 'In Progress', 'Resolved'],
         default: 'Pending'
     },
     messages: [{

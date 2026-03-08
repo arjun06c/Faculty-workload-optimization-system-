@@ -34,15 +34,46 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (email, password) => {
         try {
-            const res = await api.post('/auth/login', { email, password });
+            const res = await api.post('/login', { email, password });
+            localStorage.setItem('token', res.data.token);
+            localStorage.setItem('role', res.data.role);
+            localStorage.setItem('name', res.data.name);
+            setUser({ role: res.data.role, name: res.data.name });
+            return { success: true, role: res.data.role };
+        } catch (error) {
+            console.error("Login failed", error.response?.data);
+            return { success: false, error: error.response?.data?.msg || 'Login failed' };
+        }
+    };
+
+    const loginWithGoogle = async (token) => {
+        try {
+            const res = await api.post('/google-login', { token });
+            localStorage.setItem('token', res.data.token);
+            localStorage.setItem('role', res.data.role);
+            localStorage.setItem('name', res.data.name);
+            setUser({ role: res.data.role, name: res.data.name });
+            return { success: true, role: res.data.role };
+        } catch (error) {
+            console.error("Google Login failed", error.response?.data);
+            return { 
+                success: false, 
+                error: error.response?.status === 401 ? 'Unauthorized user' : (error.response?.data?.msg || 'Google Login failed') 
+            };
+        }
+    };
+
+    const adminLogin = async (email, password) => {
+        try {
+            const res = await api.post('/admin/login', { email, password });
             localStorage.setItem('token', res.data.token);
             localStorage.setItem('role', res.data.role);
             localStorage.setItem('name', res.data.name);
             setUser({ role: res.data.role, name: res.data.name });
             return { success: true };
         } catch (error) {
-            console.error("Login failed", error.response?.data);
-            return { success: false, error: error.response?.data?.msg || 'Login failed' };
+            console.error("Admin Login failed", error.response?.data);
+            return { success: false, error: error.response?.data?.msg || 'Admin Login failed' };
         }
     };
 
@@ -56,6 +87,8 @@ export const AuthProvider = ({ children }) => {
     const value = {
         user,
         login,
+        loginWithGoogle,
+        adminLogin,
         logout,
         loading
     };

@@ -42,7 +42,7 @@ exports.getQueries = async (req, res) => {
         }
 
         const queries = await Query.find(query)
-            .populate('facultyId', 'name department')
+            .populate({ path: 'facultyId', populate: { path: 'department', select: 'name' } })
             .sort({ createdAt: -1 });
 
         res.json(queries);
@@ -104,9 +104,23 @@ exports.editQuery = async (req, res) => {
         const query = await Query.findById(req.params.id);
         if (!query) return res.status(404).json({ msg: 'Query not found' });
 
+        // Ownership Check for Faculty
+        if (req.user.role === 'faculty') {
+            const faculty = await Faculty.findOne({ userId: req.user.id });
+            if (!faculty || query.facultyId.toString() !== faculty._id.toString()) {
+                return res.status(403).json({ msg: 'Not authorized to edit this query' });
+            }
+            // Faculty can't change status
+            if (status !== undefined && status !== query.status) {
+                return res.status(403).json({ msg: 'Faculty cannot change query status' });
+            }
+        }
+
         if (subject !== undefined) query.subject = subject;
         if (priority !== undefined) query.priority = priority;
-        if (status !== undefined) query.status = status;
+        if (status !== undefined && (req.user.role === 'academics' || req.user.role === 'admin')) {
+            query.status = status;
+        }
 
         await query.save();
         res.json(query);
@@ -123,6 +137,14 @@ exports.deleteQuery = async (req, res) => {
     try {
         const query = await Query.findById(req.params.id);
         if (!query) return res.status(404).json({ msg: 'Query not found' });
+
+        // Ownership Check for Faculty
+        if (req.user.role === 'faculty') {
+            const faculty = await Faculty.findOne({ userId: req.user.id });
+            if (!faculty || query.facultyId.toString() !== faculty._id.toString()) {
+                return res.status(403).json({ msg: 'Not authorized to delete this query' });
+            }
+        }
 
         await query.deleteOne();
         res.json({ msg: 'Query deleted successfully' });

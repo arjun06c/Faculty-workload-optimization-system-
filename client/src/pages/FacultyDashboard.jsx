@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
+import CustomSelect from '../components/CustomSelect';
 
 const FacultyDashboard = () => {
     const { logout } = useAuth();
+    const navigate = useNavigate();
     const [facultyProfile, setFacultyProfile] = useState(null);
     const [timetable, setTimetable] = useState([]);
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]); // YYYY-MM-DD
@@ -27,7 +29,12 @@ const FacultyDashboard = () => {
     });
 
     const [loading, setLoading] = useState(true);
+    const [uploading, setUploading] = useState(false);
     const [error, setError] = useState('');
+
+    // Editing State for Queries
+    const [isEditingQuery, setIsEditingQuery] = useState(false);
+    const [editingQueryData, setEditingQueryData] = useState(null);
 
     useEffect(() => {
         fetchFacultyData();
@@ -69,6 +76,69 @@ const FacultyDashboard = () => {
             fetchFacultyData();
         } catch (err) {
             alert('Error submitting query');
+        }
+    };
+
+    const handleDeleteQuery = async (id) => {
+        if (!window.confirm('Are you sure you want to delete this query?')) return;
+        try {
+            await api.delete(`/queries/${id}`);
+            fetchFacultyData();
+        } catch (err) {
+            alert(err.response?.data?.msg || 'Error deleting query. Only admins can delete queries currently.');
+        }
+    };
+
+    const handleEditQuerySubmit = async (e) => {
+        e.preventDefault();
+        try {
+            await api.put(`/queries/${editingQueryData._id}`, editingQueryData);
+            setIsEditingQuery(false);
+            setEditingQueryData(null);
+            fetchFacultyData();
+        } catch (err) {
+            alert(err.response?.data?.msg || 'Error updating query.');
+        }
+    };
+
+    const handleImageUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Basic validation
+        const filetypes = /jpeg|jpg|png/;
+        const isImage = filetypes.test(file.type);
+        if (!isImage) {
+            alert('Only images (jpg, jpeg, png) are allowed!');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('picture', file);
+
+        try {
+            setUploading(true);
+            const res = await api.post('/faculty/upload-picture', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+            
+            // Update local state
+            setFacultyProfile(prev => ({
+                ...prev,
+                userId: {
+                    ...prev.userId,
+                    picture: res.data.picture
+                }
+            }));
+            
+            alert('Profile picture updated!');
+        } catch (err) {
+            console.error('Upload error:', err);
+            alert(err.response?.data?.msg || 'Error uploading image');
+        } finally {
+            setUploading(false);
         }
     };
 
@@ -178,18 +248,48 @@ const FacultyDashboard = () => {
             {/* Professional Profile Header */}
             <div className="card faculty-profile-card" style={{ position: 'relative', overflow: 'hidden' }}>
                 <div className="faculty-profile-content" style={{ position: 'relative', zIndex: 1 }}>
-                    <div className="faculty-profile-avatar animate-pulse-soft" style={{
-                        background: facultyProfile?.picture ? `url(${facultyProfile.picture})` : 'linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%)',
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                        border: '4px solid #f8fafc',
-                        boxShadow: '0 4px 12px rgba(79, 70, 229, 0.2)',
-                        overflow: 'hidden',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                    }}>
-                        {!facultyProfile?.picture && (facultyProfile?.name?.charAt(0) || 'F')}
+                    <div 
+                        className={`faculty-profile-avatar ${uploading ? '' : 'hover:scale-110 transition-transform duration-300'}`}
+                        onClick={() => !uploading && document.getElementById('avatar-input').click()}
+                        style={{
+                            background: facultyProfile?.userId?.picture ? `url("${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${facultyProfile.userId.picture}")` : 'linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%)',
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                            backgroundRepeat: 'no-repeat',
+                            border: '4px solid #f8fafc',
+                            boxShadow: '0 4px 12px rgba(79, 70, 229, 0.2)',
+                            overflow: 'hidden',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: uploading ? 'wait' : 'pointer',
+                            position: 'relative'
+                        }}
+                    >
+                        {uploading ? (
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            </div>
+                        ) : (
+                            <>
+                                {!facultyProfile?.userId?.picture && (facultyProfile?.name?.charAt(0) || 'F')}
+                                {/* Hover Overlay */}
+                                <div className="absolute inset-0 bg-black/20 opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity">
+                                    <svg className="w-8 h-8 text-white/90 drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                </div>
+                            </>
+                        )}
+                        {/* Hidden File Input */}
+                        <input 
+                            id="avatar-input"
+                            type="file" 
+                            accept="image/*" 
+                            style={{ display: 'none' }} 
+                            onChange={handleImageUpload}
+                        />
                     </div>
                     <div>
                         {loading ? (
@@ -496,7 +596,6 @@ const FacultyDashboard = () => {
                                     >
                                         <option value="Low">Low</option>
                                         <option value="Medium">Medium</option>
-                                        <option value="High">High</option>
                                     </select>
                                 </div>
                                 <div className="input-group" style={{ gridColumn: 'span 2' }}>
@@ -573,28 +672,34 @@ const FacultyDashboard = () => {
                                 )}
 
                                 <div className="input-group" style={{ gridColumn: 'span 2' }}>
-                                    <label className="input-label">Reason</label>
-                                    <select
-                                        className="input-field"
+                                    <CustomSelect
+                                        label="Reason"
+                                        placeholder="Select Reason"
                                         value={workloadForm.reason}
-                                        onChange={(e) => setWorkloadForm({ ...workloadForm, reason: e.target.value })}
+                                        options={[
+                                            { value: 'On Duty (OD) – Official Academic Work', label: 'On Duty (OD)', sub: 'Official Academic Work' },
+                                            { value: 'Medical Leave', label: 'Medical Leave', sub: 'Personal health' },
+                                            { value: 'Personal Leave', label: 'Personal Leave', sub: 'Urgent personal work' },
+                                            { value: 'Department Meeting / Administrative Work', label: 'Dept. Meeting', sub: 'Administrative Work' },
+                                            { value: 'University / Examination Duty', label: 'Uni / Exam Duty', sub: 'Official Exam Duty' },
+                                            { value: 'Seminar / Workshop / Conference Participation', label: 'Seminar / Workshop', sub: 'Academic Conference' },
+                                            { value: 'Research or Project Work', label: 'Research Work', sub: 'Academic Research' },
+                                            { value: 'Student Mentoring or Academic Counseling', label: 'Student Mentoring', sub: 'Counseling Work' },
+                                            { value: 'Over Workload – Request Redistribution', label: 'Over Workload', sub: 'Redistribution Request' },
+                                            { value: 'Class Schedule Conflict', label: 'Schedule Conflict', sub: 'Clash Resolution' },
+                                            { value: 'Not Available for This Period', label: 'Not Available', sub: 'Unavailable' },
+                                            { value: 'Emergency Leave', label: 'Emergency', sub: 'Sudden Emergency' },
+                                            { value: 'Other (Specify Reason)', label: 'Other', sub: 'Specify specialized reason' }
+                                        ]}
+                                        onChange={(val) => setWorkloadForm({ ...workloadForm, reason: val })}
+                                        renderOption={(opt) => (
+                                            <>
+                                                <span className="option-title">{opt.label}</span>
+                                                <span className="option-subtitle">{opt.sub}</span>
+                                            </>
+                                        )}
                                         required
-                                    >
-                                        <option value="">Select Reason</option>
-                                        <option value="On Duty (OD) – Official Academic Work">On Duty (OD) – Official Academic Work</option>
-                                        <option value="Medical Leave">Medical Leave</option>
-                                        <option value="Personal Leave">Personal Leave</option>
-                                        <option value="Department Meeting / Administrative Work">Department Meeting / Administrative Work</option>
-                                        <option value="University / Examination Duty">University / Examination Duty</option>
-                                        <option value="Seminar / Workshop / Conference Participation">Seminar / Workshop / Conference Participation</option>
-                                        <option value="Research or Project Work">Research or Project Work</option>
-                                        <option value="Student Mentoring or Academic Counseling">Student Mentoring or Academic Counseling</option>
-                                        <option value="Over Workload – Request Redistribution">Over Workload – Request Redistribution</option>
-                                        <option value="Class Schedule Conflict">Class Schedule Conflict</option>
-                                        <option value="Not Available for This Period">Not Available for This Period</option>
-                                        <option value="Emergency Leave">Emergency Leave</option>
-                                        <option value="Other (Specify Reason)">Other (Specify Reason)</option>
-                                    </select>
+                                    />
                                 </div>
 
                                 {workloadForm.reason === 'Other (Specify Reason)' && (
@@ -631,37 +736,135 @@ const FacultyDashboard = () => {
                             <>
                                 {/* Queries List */}
                                 {newRequest.type === 'query' && (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', maxHeight: '400px', overflowY: 'auto', paddingRight: '0.5rem' }}>
-                                        {queries.length > 0 ? queries.map(q => (
-                                            <div key={q._id} style={{
-                                                borderRadius: '12px',
-                                                padding: '1.25rem',
-                                                background: 'white',
-                                                border: '1px solid #f1f5f9',
-                                                boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
-                                            }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                                    <span style={{ fontWeight: '600' }}>{q.subject}</span>
-                                                    <span style={{
-                                                        fontSize: '0.75rem', padding: '2px 8px', borderRadius: '12px',
-                                                        background: q.status === 'Resolved' ? '#dcfce7' : '#ffedd5',
-                                                        color: q.status === 'Resolved' ? '#166534' : '#9a3412'
-                                                    }}>{q.status}</span>
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between items-center px-1">
+                                            <div>
+                                                <h3 className="text-lg font-bold text-slate-800">Recent Queries</h3>
+                                                <p className="text-xs text-slate-500 font-medium">{queries.length} total queries</p>
+                                            </div>
+                                            <button 
+                                                onClick={() => navigate('/queries')}
+                                                className="text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+                                            >
+                                                Full History →
+                                            </button>
+                                        </div>
+
+                                        <div className="flex flex-col gap-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                                            {queries.length === 0 ? (
+                                                <div className="bg-slate-50 rounded-xl border border-dashed border-slate-200 p-8 text-center text-slate-400">
+                                                    <p className="text-sm">No queries found.</p>
                                                 </div>
-                                                <div style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '1rem' }}>
-                                                    {q.messages[q.messages.length - 1]?.text}
-                                                </div>
-                                                {/* Simple Chat View (Last 2 messages) */}
-                                                <div style={{ background: '#f8fafc', padding: '0.5rem', borderRadius: '4px', fontSize: '0.85rem' }}>
-                                                    {q.messages.map((msg, idx) => (
-                                                        <div key={idx} style={{ marginBottom: '0.25rem', textAlign: msg.sender === 'faculty' ? 'right' : 'left' }}>
-                                                            <span style={{ fontWeight: 'bold' }}>{msg.sender === 'faculty' ? 'You' : 'Admin'}: </span>
-                                                            {msg.text}
+                                            ) : (
+                                                queries.map(q => (
+                                                    <div
+                                                        key={q._id}
+                                                        className={`relative bg-white rounded-xl shadow-sm border-l-4 p-5 transition-all hover:shadow-md hover:translate-x-1 ${
+                                                            q.priority === 'High' ? 'border-l-red-500' : 
+                                                            q.priority === 'Medium' ? 'border-l-amber-500' : 'border-l-blue-500'
+                                                        }`}
+                                                    >
+                                                        <div className="flex justify-between items-start mb-2">
+                                                            <div>
+                                                                <h4 className="font-bold text-slate-800 text-sm">{facultyProfile?.name}</h4>
+                                                            </div>
+                                                            <span className="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded border border-slate-100 uppercase">
+                                                                {new Date(q.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                                            </span>
                                                         </div>
-                                                    ))}
+
+                                                        <p className="text-slate-700 font-semibold text-sm mb-3">{q.subject}</p>
+                                                        
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                                                                    q.priority === 'High' ? 'bg-red-50 text-red-600 border border-red-100' :
+                                                                    q.priority === 'Medium' ? 'bg-amber-50 text-amber-600 border border-amber-100' :
+                                                                    'bg-blue-50 text-blue-600 border border-blue-100'
+                                                                }`}>
+                                                                    {q.priority}
+                                                                </span>
+                                                                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                                                                    q.status === 'Resolved' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 
+                                                                    'bg-slate-100 text-slate-600 border border-slate-200'
+                                                                }`}>
+                                                                    {q.status}
+                                                                </span>
+                                                            </div>
+
+                                                            <div className="flex items-center gap-2">
+                                                                <button 
+                                                                    onClick={() => { setEditingQueryData({ ...q }); setIsEditingQuery(true); }}
+                                                                    className="p-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors border border-slate-200"
+                                                                    title="Edit Query"
+                                                                >
+                                                                    <span className="text-xs">✏️</span>
+                                                                </button>
+                                                                <button 
+                                                                    onClick={() => handleDeleteQuery(q._id)}
+                                                                    className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-colors border border-red-100"
+                                                                    title="Delete Query"
+                                                                >
+                                                                    <span className="text-xs">🗑️</span>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+
+                                        {/* Edit Query Modal */}
+                                        {isEditingQuery && editingQueryData && (
+                                            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[1100] p-4"
+                                                onClick={() => { setIsEditingQuery(false); setEditingQueryData(null); }}>
+                                                <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl relative animate-in fade-in zoom-in duration-200"
+                                                    onClick={e => e.stopPropagation()}>
+                                                    <div className="flex items-center gap-3 mb-5">
+                                                        <div className="h-9 w-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg">✏️</div>
+                                                        <h3 className="text-lg font-bold text-slate-800">Edit Query</h3>
+                                                    </div>
+                                                    <form onSubmit={handleEditQuerySubmit} className="space-y-4">
+                                                        <div className="space-y-1">
+                                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Subject</label>
+                                                            <input
+                                                                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all text-slate-700 font-medium text-sm"
+                                                                value={editingQueryData.subject}
+                                                                onChange={e => setEditingQueryData({ ...editingQueryData, subject: e.target.value })}
+                                                                required
+                                                            />
+                                                        </div>
+                                                        <CustomSelect
+                                                            label="Priority"
+                                                            placeholder="Select Priority"
+                                                            value={editingQueryData.priority}
+                                                            options={[
+                                                                { value: 'Low', label: 'Low', sub: 'Routine response' },
+                                                                { value: 'Medium', label: 'Medium', sub: 'Standard response' },
+                                                                { value: 'High', label: 'High', sub: 'Urgent attention' }
+                                                            ]}
+                                                            onChange={(val) => setEditingQueryData({ ...editingQueryData, priority: val })}
+                                                            renderOption={(opt) => (
+                                                                <>
+                                                                    <span className="option-title font-bold text-slate-700 text-sm">{opt.label}</span>
+                                                                    <span className="option-subtitle text-[10px] text-slate-400 font-medium">{opt.sub}</span>
+                                                                </>
+                                                            )}
+                                                        />
+                                                        <div className="flex gap-2 pt-2">
+                                                            <button type="submit" className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-lg shadow-blue-500/25 transition-all">
+                                                                Save
+                                                            </button>
+                                                            <button type="button" 
+                                                                    onClick={() => { setIsEditingQuery(false); setEditingQueryData(null); }}
+                                                                    className="flex-1 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-sm transition-all">
+                                                                Cancel
+                                                            </button>
+                                                        </div>
+                                                    </form>
                                                 </div>
                                             </div>
-                                        )) : <p style={{ color: '#94a3b8', textAlign: 'center' }}>No queries found.</p>}
+                                        )}
                                     </div>
                                 )}
 

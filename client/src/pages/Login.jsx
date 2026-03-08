@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { GoogleLogin } from '@react-oauth/google';
 import bitLogo from '../Images/bit.png';
 
 const Login = () => {
@@ -8,14 +9,12 @@ const Login = () => {
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
-    const { login } = useAuth();
+    const { login, loginWithGoogle } = useAuth();
     const navigate = useNavigate();
 
-    const handleRedirect = () => {
-        const role = localStorage.getItem('role');
-        if (role === 'admin') navigate('/admin');
-        else if (role === 'academics') navigate('/academics');
-        else if (role === 'faculty') navigate('/faculty');
+    const handleRedirect = (role) => {
+        if (role === 'academics') navigate('/academic/dashboard');
+        else if (role === 'faculty') navigate('/faculty/dashboard');
         else navigate('/');
     };
 
@@ -28,9 +27,14 @@ const Login = () => {
         try {
             const res = await login(email, password);
             if (res.success) {
-                handleRedirect();
+                if (res.role === 'admin') {
+                    setError('Admins must use the dedicated Admin Portal.');
+                    localStorage.clear();
+                } else {
+                    handleRedirect(res.role);
+                }
             } else {
-                setError('Login failed. Please check your email and password.');
+                setError(res.error || 'Login failed. Please check your email and password.');
             }
         } catch (err) {
             console.error('Login submit error:', err);
@@ -40,85 +44,140 @@ const Login = () => {
         }
     };
 
-    return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-100 p-6 font-sans selection:bg-blue-100 selection:text-blue-900">
-            {/* Premium Focused Login Card - Exactly 420px width */}
-            <div className="w-[420px] bg-gradient-to-b from-white to-gray-50 rounded-[18px] shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1),0_8px_10px_-6px_rgba(0,0,0,0.1)] border border-white p-10 flex flex-col items-center text-center gap-5">
+    const handleGoogleSuccess = async (credentialResponse) => {
+        setIsLoading(true);
+        setError('');
+        try {
+            const res = await loginWithGoogle(credentialResponse.credential);
+            if (res.success) {
+                handleRedirect(res.role);
+            } else {
+                setError(res.error || 'Unauthorized user');
+            }
+        } catch (err) {
+            console.error('Google login error:', err);
+            setError('Google login failed.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-                {/* Clean Modern Login Header */}
-                <div className="flex flex-col items-center text-center">
-                    <span className="text-slate-400 text-[16px] font-medium tracking-[0.05em] mb-2 uppercase">
+    const handleGoogleError = () => {
+        setError('Google Login Failed');
+    };
+
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6 font-sans">
+            <div 
+                className="w-full max-w-md bg-white rounded-2xl shadow-xl flex flex-col items-center border border-slate-100"
+                style={{ maxWidth: '420px', padding: '35px' }}
+            >
+                
+                {/* Header Section */}
+                <div className="flex flex-col items-center text-center w-full mb-6">
+                    <span className="text-gray-500 text-[11px] font-bold tracking-widest mb-2 uppercase">
                         Faculty Workload Optimization System
                     </span>
-                    <h1 className="text-[#0f172a] text-[30px] font-bold tracking-tight leading-tight">
+                    <h1 className="text-gray-900 text-2xl font-bold tracking-tight">
                         Welcome Back
                     </h1>
                 </div>
 
-                {/* Centered Logo with Increased Spacing */}
-                <div className="mt-6 mb-4">
+                {/* Logo Section */}
+                <div className="flex justify-center mb-8 w-full">
                     <img
                         src={bitLogo}
                         alt="BIT Logo"
-                        className="w-[90px] h-auto object-contain mx-auto opacity-95 transition-all hover:scale-105"
+                        className="h-28 w-auto object-contain"
                         onError={(e) => {
                             e.target.src = 'https://upload.wikimedia.org/wikipedia/en/b/b5/Bannari_Amman_Institute_of_Technology_logo.png';
                         }}
                     />
                 </div>
 
-                {/* Authentication Form with 320px items */}
-                <div className="w-[320px] flex flex-col gap-5">
+                {/* Authentication Form */}
+                <div className="w-full flex flex-col gap-3">
 
                     {error && (
-                        <div className="w-full p-3 bg-red-50 border border-red-100 text-red-600 text-xs rounded-lg font-medium">
+                        <div className="w-full p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg font-medium text-center">
                             {error}
                         </div>
                     )}
 
-                    {/* Email/Password Fields */}
+                    {/* Email/Password Fields and Login Button */}
                     <form onSubmit={handleSubmit} className="w-full flex flex-col gap-5">
                         <div className="flex flex-col gap-5">
-                            <input
-                                type="email"
-                                className="w-full h-[50px] px-[14px] bg-white border border-[#d9dee7] rounded-[12px] text-[15px] focus:outline-none focus:border-[#2563eb] focus:ring-[3px] focus:ring-[#2563eb]/15 transition-all placeholder:text-slate-400 text-slate-700"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder="Email Address"
-                                required
-                            />
-                            <input
-                                type="password"
-                                className="w-full h-[50px] px-[14px] bg-white border border-[#d9dee7] rounded-[12px] text-[15px] focus:outline-none focus:border-[#2563eb] focus:ring-[3px] focus:ring-[#2563eb]/15 transition-all placeholder:text-slate-400 text-slate-700"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                placeholder="Password"
-                                required
-                            />
+                            <div className="w-full">
+                                <input
+                                    type="email"
+                                    className="w-full h-12 px-4 py-3 bg-white border border-gray-300 rounded-xl text-base focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all placeholder-gray-400 text-gray-700 font-medium shadow-sm"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    placeholder="Email Address"
+                                    required
+                                />
+                            </div>
+                            <div className="w-full">
+                                <input
+                                    type="password"
+                                    className="w-full h-12 px-4 py-3 bg-white border border-gray-300 rounded-xl text-base focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all placeholder-gray-400 text-gray-700 font-medium shadow-sm"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    placeholder="Password"
+                                    required
+                                />
+                            </div>
                         </div>
 
-                        {/* Continue Button: Green Gradient */}
-                        <button
-                            type="submit"
-                            disabled={isLoading}
-                            className="w-full h-[48px] bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-semibold rounded-[12px] transition-all shadow-[0_4px_12px_rgba(0,0,0,0.15)] hover:shadow-lg active:scale-[0.98] disabled:opacity-50"
-                        >
-                            {isLoading ? (
-                                <div className="flex items-center justify-center gap-2">
-                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                    <span>Processing...</span>
-                                </div>
-                            ) : (
-                                'Continue'
-                            )}
-                        </button>
+                        {/* Login Button */}
+                        <div className="w-full">
+                            <button
+                                type="submit"
+                                disabled={isLoading}
+                                className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all duration-300 shadow-md hover:shadow-lg active:scale-[0.98] disabled:opacity-50 flex items-center justify-center text-base"
+                            >
+                                {isLoading ? (
+                                    <div className="flex items-center justify-center gap-2">
+                                        <div className="w-5 h-5 border-2 border-blue-200 border-t-white rounded-full animate-spin"></div>
+                                        <span>Authenticating...</span>
+                                    </div>
+                                ) : (
+                                    'Login to Dashboard'
+                                )}
+                            </button>
+                        </div>
                     </form>
+
+                    {/* Separator */}
+                    <div className="w-full">
+                        <div className="flex items-center gap-3">
+                            <div className="flex-1 h-px bg-gray-200"></div>
+                            <span className="text-gray-400 text-xs font-bold uppercase tracking-wider">OR</span>
+                            <div className="flex-1 h-px bg-gray-200"></div>
+                        </div>
+                    </div>
+
+                    {/* Google Login Button */}
+                    <div className="w-full flex justify-center">
+                        <div className="w-[350px] flex justify-center">
+                            <GoogleLogin
+                                onSuccess={handleGoogleSuccess}
+                                onError={handleGoogleError}
+                                theme="outline"
+                                size="large"
+                                width="350"
+                                shape="pill"
+                                text="continue_with"
+                            />
+                        </div>
+                    </div>
                 </div>
 
-                {/* Footer and Legal */}
-                <div className="text-center text-[11px] text-slate-400 font-medium">
+                {/* Footer Center Section */}
+                <div className="mt-10 text-sm text-gray-400 font-medium text-center tracking-wide">
                     © 2026 BITS SATHY
                 </div>
+
             </div>
         </div>
     );

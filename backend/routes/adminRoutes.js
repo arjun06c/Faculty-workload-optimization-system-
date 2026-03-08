@@ -12,12 +12,20 @@ const {
     updateFaculty,
     deleteFaculty,
     updateDepartment,
-    deleteDepartment
+    deleteDepartment,
+    createSubject,
+    getSubjects,
+    updateSubject,
+    deleteSubject
 } = require('../controllers/adminController');
 
 
-// All routes here require Admin role
+// All routes here require Admin role EXCEPT login
 // middleware: [auth, checkRole(['admin'])]
+
+const { adminLoginUser } = require('../controllers/authController');
+
+router.post('/login', adminLoginUser);
 
 router.post('/departments', [auth, checkRole(['admin'])], createDepartment);
 router.get('/departments', [auth, checkRole(['admin', 'academics'])], getDepartments);
@@ -33,5 +41,11 @@ router.put('/faculty/:id', [auth, checkRole(['admin'])], updateFaculty);
 router.delete('/faculty/:id', [auth, checkRole(['admin'])], deleteFaculty);
 
 router.post('/academics', [auth, checkRole(['admin'])], addAcademicsUser);
+
+// Subjects Management
+router.post('/subjects', [auth, checkRole(['admin'])], createSubject);
+router.get('/subjects', [auth, checkRole(['admin', 'academics'])], getSubjects);
+router.put('/subjects/:id', [auth, checkRole(['admin'])], updateSubject);
+router.delete('/subjects/:id', [auth, checkRole(['admin'])], deleteSubject);
 
 module.exports = router;

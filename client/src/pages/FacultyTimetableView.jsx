@@ -88,7 +88,7 @@ const FacultyTimetableView = () => {
     return (
         <div className="page-container" style={{ background: '#f8fafc', minHeight: '100vh', padding: '2rem 1rem' }}>
             <div style={{ marginBottom: '2rem' }}>
-                <button onClick={() => navigate('/academics')} className="btn btn-secondary" style={{ marginBottom: '1rem' }}>
+                <button onClick={() => navigate('/academic/dashboard')} className="btn btn-secondary" style={{ marginBottom: '1rem' }}>
                     ← Back to Academics Dashboard
                 </button>
 

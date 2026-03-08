@@ -27,6 +27,8 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
+app.post('/api/login', require('./controllers/authController').loginUser);
+app.post('/api/google-login', require('./controllers/authController').googleLogin);
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/academics', require('./routes/academicsRoutes'));
 app.use('/api/faculty', require('./routes/facultyRoutes'));

@@ -1,6 +1,7 @@
 const Department = require('../models/Department');
 const Faculty = require('../models/Faculty');
 const User = require('../models/User');
+const Subject = require('../models/Subject');
 const bcrypt = require('bcryptjs');
 
 // @desc    Create a new department
@@ -261,6 +262,75 @@ exports.deleteFaculty = async (req, res) => {
         await Faculty.findByIdAndDelete(req.params.id);
 
         res.json({ msg: 'Faculty member and associated user deleted' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+};
+// ─── SUBJECT MANAGEMENT ──────────────────────────────────────────────────────
+
+// @desc    Create a new subject
+// @route   POST /api/admin/subjects
+// @access  Admin
+exports.createSubject = async (req, res) => {
+    const { subjectCode, subjectName, departmentId } = req.body;
+    try {
+        let existing = await Subject.findOne({ subjectCode });
+        if (existing) return res.status(400).json({ msg: 'Subject code already exists' });
+
+        const subject = new Subject({ subjectCode, subjectName, department: departmentId });
+        await subject.save();
+        res.json(subject);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+};
+
+// @desc    Get all subjects
+// @route   GET /api/admin/subjects
+// @access  Admin, Academics
+exports.getSubjects = async (req, res) => {
+    try {
+        const subjects = await Subject.find().populate('department', 'name').sort({ subjectCode: 1 });
+        res.json(subjects);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+};
+
+// @desc    Update a subject
+// @route   PUT /api/admin/subjects/:id
+// @access  Admin
+exports.updateSubject = async (req, res) => {
+    const { subjectCode, subjectName, departmentId } = req.body;
+    try {
+        let subject = await Subject.findById(req.params.id);
+        if (!subject) return res.status(404).json({ msg: 'Subject not found' });
+
+        if (subjectCode) subject.subjectCode = subjectCode;
+        if (subjectName) subject.subjectName = subjectName;
+        if (departmentId) subject.department = departmentId;
+
+        await subject.save();
+        res.json(subject);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+};
+
+// @desc    Delete a subject
+// @route   DELETE /api/admin/subjects/:id
+// @access  Admin
+exports.deleteSubject = async (req, res) => {
+    try {
+        const subject = await Subject.findById(req.params.id);
+        if (!subject) return res.status(404).json({ msg: 'Subject not found' });
+
+        await Subject.findByIdAndDelete(req.params.id);
+        res.json({ msg: 'Subject deleted' });
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server error');

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
+import { BASE_URL } from '../config/api';
 import { useAuth } from '../context/AuthContext';
 import CustomSelect from '../components/CustomSelect';
 
@@ -262,7 +263,7 @@ const FacultyDashboard = () => {
                         className={`faculty-profile-avatar ${uploading ? '' : 'hover:scale-110 transition-transform duration-300'}`}
                         onClick={() => !uploading && document.getElementById('avatar-input').click()}
                         style={{
-                            background: facultyProfile?.userId?.picture ? `url("${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${facultyProfile.userId.picture}")` : 'linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%)',
+                            background: facultyProfile?.userId?.picture ? `url("${BASE_URL}${facultyProfile.userId.picture}")` : 'linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%)',
                             backgroundSize: 'cover',
                             backgroundPosition: 'center',
                             backgroundRepeat: 'no-repeat',

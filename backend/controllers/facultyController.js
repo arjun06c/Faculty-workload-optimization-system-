@@ -105,13 +105,56 @@ exports.raiseWorkloadRequest = async (req, res) => {
             return res.status(404).json({ msg: 'Faculty profile not found' });
         }
 
+        // Derive the day-of-week name (Monday, Tuesday, etc.) from the submitted date
+        const dateObj = new Date(date);
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const dayName = dayNames[dateObj.getUTCDay()]; // Use UTC to avoid timezone shifts
+
+        if (dayName === 'Sunday' || dayName === 'Saturday') {
+            return res.status(400).json({ msg: 'Invalid request. No classes are scheduled on weekends.' });
+        }
+
+        // ── VALIDATION: Check timetable ownership ──────────────────────────────
+        if (type === 'SINGLE') {
+            if (!periods || periods.length === 0) {
+                return res.status(400).json({ msg: 'Please select a period for single-period request.' });
+            }
+            const requestedPeriod = parseInt(periods[0]);
+
+            // Look for a timetable entry matching this faculty, day, and period
+            const assignedSlot = await Timetable.findOne({
+                facultyId: faculty._id,
+                day: dayName,
+                period: requestedPeriod
+            });
+
+            if (!assignedSlot) {
+                return res.status(400).json({
+                    msg: `Invalid request. You can only request workload changes for periods that are already assigned to you.`
+                });
+            }
+        } else if (type === 'FULL_DAY') {
+            // For full-day, verify faculty has at least one class on that day
+            const daySlots = await Timetable.findOne({
+                facultyId: faculty._id,
+                day: dayName
+            });
+
+            if (!daySlots) {
+                return res.status(400).json({
+                    msg: `Invalid request. You have no classes assigned on ${dayName}. Cannot raise a full-day request for this date.`
+                });
+            }
+        }
+        // ── END VALIDATION ────────────────────────────────────────────────────
+
         const newRequest = new WorkloadRequest({
             facultyId: faculty._id,
             department: faculty.department,
             reason,
             date,
             type: type || 'SINGLE',
-            periods: periods || [],
+            periods: type === 'FULL_DAY' ? [1, 2, 3, 4, 5, 6, 7, 8] : periods || [],
             status: 'Pending'
         });
 
@@ -123,6 +166,7 @@ exports.raiseWorkloadRequest = async (req, res) => {
         res.status(500).send('Server error');
     }
 };
+
 
 // @desc    Get faculty's workload requests history
 // @route   GET /api/faculty/workload-requests

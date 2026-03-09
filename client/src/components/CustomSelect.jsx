@@ -25,12 +25,19 @@ const CustomSelect = ({ options, value, onChange, placeholder, label, disabled, 
         <div className={`custom-select-container ${className || ''}`} ref={dropdownRef}>
             {label && <label className="input-label">{label}</label>}
             <div 
-                className={`custom-select-trigger ${className || ''} ${isOpen ? 'open' : ''} ${disabled ? 'disabled' : ''}`}
+                className={`custom-select-trigger ${isOpen ? 'open' : ''} ${disabled ? 'disabled' : ''}`}
                 onClick={() => !disabled && setIsOpen(!isOpen)}
             >
-                <span style={{ color: selectedOption ? 'inherit' : '#94a3b8' }}>
-                    {selectedOption ? selectedOption.label : placeholder}
-                </span>
+                <div className="trigger-content">
+                    {selectedOption ? (
+                        <>
+                            <span className="trigger-label">{selectedOption.label}</span>
+                            {selectedOption.sub && <span className="trigger-sublabel">{selectedOption.sub}</span>}
+                        </>
+                    ) : (
+                        <span style={{ color: '#94a3b8' }}>{placeholder || 'Select option'}</span>
+                    )}
+                </div>
                 <svg className={`arrow-icon ${isOpen ? 'rotated' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
                 </svg>
@@ -44,7 +51,10 @@ const CustomSelect = ({ options, value, onChange, placeholder, label, disabled, 
                             onClick={() => handleSelect(opt.value)}
                         >
                             {renderOption ? renderOption(opt) : (
-                                <span className="option-title">{opt.label}</span>
+                                <>
+                                    <span className="option-title">{opt.label}</span>
+                                    {opt.sub && <span className="option-subtitle">{opt.sub}</span>}
+                                </>
                             )}
                         </div>
                     ))

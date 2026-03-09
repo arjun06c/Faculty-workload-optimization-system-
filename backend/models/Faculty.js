@@ -45,7 +45,16 @@ const FacultySchema = new mongoose.Schema({
     },
     phone: {
         type: String
-    }
+    },
+    unavailableDays: [{
+        type: String,
+        enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+    }],
+    unavailablePeriods: [{
+        type: Number,
+        min: 1,
+        max: 8
+    }]
 });
 
 module.exports = mongoose.model('Faculty', FacultySchema);

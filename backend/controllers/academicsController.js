@@ -20,35 +20,75 @@ exports.createTimetableEntry = async (req, res) => {
         const faculty = await Faculty.findById(facultyId);
         if (!faculty) return res.status(404).json({ msg: 'Faculty not found' });
 
+        // --- CONFLICT CHECK 1: Faculty Availability ---
+        // Block if the faculty is marked unavailable for this day
+        if (faculty.unavailableDays && faculty.unavailableDays.includes(day)) {
+            return res.status(400).json({ msg: 'Selected faculty is unavailable for this time.' });
+        }
+        // Block if the faculty is marked unavailable for this period
+        if (faculty.unavailablePeriods && faculty.unavailablePeriods.includes(periodNum)) {
+            return res.status(400).json({ msg: 'Selected faculty is unavailable for this time.' });
+        }
+
         const hoursAdded = type === 'Lab' ? 1.5 : 1;
 
-        // Constraint 1: Max Hours
+        // Constraint: Max Hours
         if (faculty.currentHours + hoursAdded > faculty.maxHours) {
             return res.status(400).json({ msg: `Overload: Faculty has reached max hours limit (${faculty.maxHours}h)` });
         }
 
-        // Constraint 2: Clashing slot (Check Date too)
         const dateObj = new Date(date);
+
+        // --- CONFLICT CHECK 2: Faculty Time Conflict (same day + period) ---
+        const facultyDayConflict = await Timetable.findOne({
+            facultyId,
+            day,
+            period: periodNum
+        });
+        if (facultyDayConflict) {
+            return res.status(400).json({ msg: 'Faculty already assigned to another class during this period.' });
+        }
+
+        // --- CONFLICT CHECK 3: Classroom Conflict (same room + day + period) ---
+        if (roomNumber) {
+            const roomConflict = await Timetable.findOne({
+                roomNumber,
+                day,
+                period: periodNum
+            });
+            if (roomConflict) {
+                return res.status(400).json({ msg: 'Classroom is already occupied during this time slot.' });
+            }
+        }
+
+        // --- CONFLICT CHECK 4: Class Slot Conflict (same class group cannot have two classes at the same day + period) ---
+        const classSlotConflict = await Timetable.findOne({
+            department,
+            classYear,
+            day,
+            period: periodNum
+        });
+        if (classSlotConflict) {
+            return res.status(400).json({
+                msg: `Scheduling conflict: ${classYear} (${classSlotConflict.subject}) already has a class in Period ${periodNum} on ${day}. Each class group can only have one slot per period.`
+            });
+        }
+
+        // Legacy date-based faculty clash check
         const existingFacultyStats = await Timetable.findOne({
             facultyId,
             date: dateObj,
             period: periodNum
         });
         if (existingFacultyStats) {
-            return res.status(400).json({ msg: 'Conflict: Faculty is already assigned for this slot on this date' });
+            return res.status(400).json({ msg: 'Faculty already assigned to another class during this period.' });
         }
 
-        const existingClassStats = await Timetable.findOne({
-            department,
-            classYear,
-            date: dateObj,
-            period: periodNum
-        });
-        if (existingClassStats) {
-            return res.status(400).json({ msg: 'Conflict: Class is already occupied for this slot on this date' });
-        }
+        // NOTE: Legacy date-based class clash check removed.
+        // The day-based class slot conflict check (Check #4) above already handles this correctly
+        // using the recurring `day` field which is the authoritative schedule identifier.
 
-        // Constraint 3: Continuous Periods (Max 3)
+        // Constraint: Continuous Periods (Max 3)
         const prevPeriods = await Timetable.find({
             facultyId,
             date: dateObj,
@@ -331,30 +371,72 @@ exports.updateTimetableEntry = async (req, res) => {
         const newPeriod = period ? parseInt(period) : entry.period;
         const newType = type || entry.type;
         const newHours = newType === 'Lab' ? 1.5 : 1;
+        const newDay = day || entry.day;
+        const targetFacultyId = facultyId || oldFacultyId;
+        const newRoomNumber = roomNumber !== undefined ? roomNumber : entry.roomNumber;
+        const newClassYear = classYear || entry.classYear;
 
-        // Conflict Checks if date, period or faculty changes
-        if (date || period || facultyId) {
-            const targetFacultyId = facultyId || oldFacultyId;
+        // --- CONFLICT CHECK 1: Faculty Availability ---
+        const targetFaculty = await Faculty.findById(targetFacultyId);
+        if (!targetFaculty) return res.status(404).json({ msg: 'Faculty not found' });
 
-            // 1. Faculty Clash
-            const facultyClash = await Timetable.findOne({
-                _id: { $ne: req.params.id },
-                facultyId: targetFacultyId,
-                date: newDate,
-                period: newPeriod
-            });
-            if (facultyClash) return res.status(400).json({ msg: 'Conflict: Faculty already has a class in this slot' });
-
-            // 2. Class Clash
-            const classClash = await Timetable.findOne({
-                _id: { $ne: req.params.id },
-                department: entry.department,
-                classYear: classYear || entry.classYear,
-                date: newDate,
-                period: newPeriod
-            });
-            if (classClash) return res.status(400).json({ msg: 'Conflict: Class already has a session in this slot' });
+        if (targetFaculty.unavailableDays && targetFaculty.unavailableDays.includes(newDay)) {
+            return res.status(400).json({ msg: 'Selected faculty is unavailable for this time.' });
         }
+        if (targetFaculty.unavailablePeriods && targetFaculty.unavailablePeriods.includes(newPeriod)) {
+            return res.status(400).json({ msg: 'Selected faculty is unavailable for this time.' });
+        }
+
+        // --- CONFLICT CHECK 2: Faculty Time Conflict (same day + period) ---
+        const facultyDayConflict = await Timetable.findOne({
+            _id: { $ne: req.params.id },
+            facultyId: targetFacultyId,
+            day: newDay,
+            period: newPeriod
+        });
+        if (facultyDayConflict) {
+            return res.status(400).json({ msg: 'Faculty already assigned to another class during this period.' });
+        }
+
+        // --- CONFLICT CHECK 3: Classroom Conflict (same room + day + period) ---
+        if (newRoomNumber) {
+            const roomConflict = await Timetable.findOne({
+                _id: { $ne: req.params.id },
+                roomNumber: newRoomNumber,
+                day: newDay,
+                period: newPeriod
+            });
+            if (roomConflict) {
+                return res.status(400).json({ msg: 'Classroom is already occupied during this time slot.' });
+            }
+        }
+
+        // --- CONFLICT CHECK 4: Duplicate Entry (same subject + day + period + classYear + department) ---
+        // --- CONFLICT CHECK 4: Class Slot Conflict (same class group cannot have two slots at the same day + period) ---
+        const classSlotConflict = await Timetable.findOne({
+            _id: { $ne: req.params.id },
+            department: entry.department,
+            classYear: newClassYear,
+            day: newDay,
+            period: newPeriod
+        });
+        if (classSlotConflict) {
+            return res.status(400).json({
+                msg: `Scheduling conflict: ${newClassYear} (${classSlotConflict.subject}) already has a class in Period ${newPeriod} on ${newDay}. Each class group can only have one slot per period.`
+            });
+        }
+
+        // Legacy date-based clash checks
+        const facultyDateClash = await Timetable.findOne({
+            _id: { $ne: req.params.id },
+            facultyId: targetFacultyId,
+            date: newDate,
+            period: newPeriod
+        });
+        if (facultyDateClash) return res.status(400).json({ msg: 'Faculty already assigned to another class during this period.' });
+
+        // NOTE: Legacy date-based class clash check removed.
+        // The day-based class slot conflict check (Check #4) above covers this correctly.
 
         // Workload adjustment if faculty or type (hours) changes
         if (facultyId && facultyId !== oldFacultyId) {

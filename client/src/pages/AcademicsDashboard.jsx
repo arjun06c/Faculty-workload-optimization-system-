@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
+import CustomSelect from '../components/CustomSelect';
 
 const AcademicsDashboard = () => {
     const { logout } = useAuth();
@@ -35,6 +36,12 @@ const AcademicsDashboard = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [isEditingEntry, setIsEditingEntry] = useState(false);
     const [editingEntryData, setEditingEntryData] = useState(null);
+    const [notification, setNotification] = useState(null); // { type: 'success'|'error'|'warning', msg: string }
+
+    const showNotification = (type, msg) => {
+        setNotification({ type, msg });
+        setTimeout(() => setNotification(null), 5000);
+    };
 
     useEffect(() => {
         fetchData();
@@ -98,11 +105,11 @@ const AcademicsDashboard = () => {
         e.preventDefault();
         try {
             await api.post('/academics/timetable', newEntry);
-            alert('Entry added successfully!');
+            showNotification('success', 'Timetable entry added successfully!');
             setNewEntry({ ...newEntry, subject: '', period: '', roomNumber: '' });
-            fetchData(); // Refresh faculty workload hours
+            fetchData();
         } catch (err) {
-            alert(err.response?.data?.msg || 'Error adding entry');
+            showNotification('error', err.response?.data?.msg || 'Error adding entry');
         }
     };
 
@@ -233,10 +240,10 @@ const AcademicsDashboard = () => {
         if (!window.confirm('Are you sure you want to delete this schedule entry?')) return;
         try {
             await api.delete(`/academics/timetable/${id}`);
-            alert('Entry deleted successfully');
+            showNotification('success', 'Schedule entry deleted successfully.');
             fetchData();
         } catch (err) {
-            alert(err.response?.data?.msg || 'Error deleting entry');
+            showNotification('error', err.response?.data?.msg || 'Error deleting entry');
         }
     };
 
@@ -244,11 +251,11 @@ const AcademicsDashboard = () => {
         e.preventDefault();
         try {
             await api.put(`/academics/timetable/${editingEntryData._id}`, editingEntryData);
-            alert('Entry updated successfully');
+            showNotification('success', 'Timetable entry updated successfully!');
             setIsEditingEntry(false);
             fetchData();
         } catch (err) {
-            alert(err.response?.data?.msg || 'Error updating entry');
+            showNotification('error', err.response?.data?.msg || 'Error updating entry');
         }
     };
 
@@ -336,6 +343,39 @@ const AcademicsDashboard = () => {
                             </p>
                         </div>
 
+                        {/* Conflict / Validation Notification Banner */}
+                        {notification && (
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'flex-start',
+                                gap: '0.75rem',
+                                padding: '0.9rem 1.1rem',
+                                marginBottom: '1.25rem',
+                                borderRadius: '10px',
+                                border: `1px solid ${notification.type === 'success' ? '#86efac' : notification.type === 'warning' ? '#fde68a' : '#fca5a5'}`,
+                                background: notification.type === 'success' ? '#f0fdf4' : notification.type === 'warning' ? '#fffbeb' : '#fff5f5',
+                                color: notification.type === 'success' ? '#166534' : notification.type === 'warning' ? '#92400e' : '#991b1b',
+                                animation: 'fadeInDown 0.3s ease',
+                                fontSize: '0.9rem',
+                                fontWeight: '500',
+                                lineHeight: '1.4'
+                            }}>
+                                <span style={{ fontSize: '1.1rem', flexShrink: 0, marginTop: '0.05rem' }}>
+                                    {notification.type === 'success' ? '✅' : notification.type === 'warning' ? '⚠️' : '🚫'}
+                                </span>
+                                <span style={{ flex: 1 }}>{notification.msg}</span>
+                                <button
+                                    type="button"
+                                    onClick={() => setNotification(null)}
+                                    style={{
+                                        background: 'none', border: 'none', cursor: 'pointer',
+                                        color: 'inherit', opacity: 0.6, fontSize: '1rem',
+                                        padding: '0', lineHeight: 1, flexShrink: 0
+                                    }}
+                                >✕</button>
+                            </div>
+                        )}
+
                         <form onSubmit={handleAddEntry} className="form-grid">
                             {/* Date Input */}
                             <div className="input-group">
@@ -350,53 +390,73 @@ const AcademicsDashboard = () => {
                             </div>
 
                             <div className="input-group">
-                                <label className="input-label">Department</label>
-                                <select className="input-field" value={newEntry.department} onChange={(e) => setNewEntry({ ...newEntry, department: e.target.value })} required>
-                                    <option value="">Select Department</option>
-                                    {departments.map(d => <option key={d._id} value={d._id}>{d.name}</option>)}
-                                </select>
-                            </div>
-
-                            <div className="input-group">
-                                <label className="input-label">Faculty</label>
-                                <select className="input-field" value={newEntry.facultyId} onChange={(e) => setNewEntry({ ...newEntry, facultyId: e.target.value, subject: '' })} required>
-                                    <option value="">Select Faculty</option>
-                                    {facultyList.filter(f => f.department?._id === newEntry.department).map(f => (
-                                        <option key={f._id} value={f._id}>{f.name} ({f.currentHours}/{f.maxHours}h)</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div className="input-group">
-                                <label className="input-label">Subject Name</label>
-                                <select
-                                    className="input-field"
-                                    value={newEntry.subject}
-                                    onChange={(e) => setNewEntry({ ...newEntry, subject: e.target.value })}
+                                <CustomSelect
+                                    label="Department"
+                                    placeholder="Select Department"
+                                    value={newEntry.department}
+                                    onChange={(val) => setNewEntry({ ...newEntry, department: val })}
+                                    options={departments.map(d => ({ value: d._id, label: d.name }))}
                                     required
+                                />
+                            </div>
+
+                            <div className="input-group">
+                                <CustomSelect
+                                    label="Faculty"
+                                    placeholder="Select Faculty"
+                                    value={newEntry.facultyId}
+                                    onChange={(val) => setNewEntry({ ...newEntry, facultyId: val, subject: '' })}
+                                    disabled={!newEntry.department}
+                                    options={facultyList
+                                        .filter(f => f.department?._id === newEntry.department)
+                                        .map(f => ({ 
+                                            value: f._id, 
+                                            label: f.name, 
+                                            sub: `${f.designation} • ${f.currentHours}/${f.maxHours}h` 
+                                        }))}
+                                    required
+                                />
+                            </div>
+
+                            <div className="input-group">
+                                <CustomSelect
+                                    label="Subject Name"
+                                    placeholder={newEntry.facultyId ? "Select Subject" : "Select Faculty first"}
+                                    value={newEntry.subject}
+                                    onChange={(val) => setNewEntry({ ...newEntry, subject: val })}
                                     disabled={!newEntry.facultyId}
-                                >
-                                    <option value="">{newEntry.facultyId ? "Select Subject" : "Select Faculty first"}</option>
-                                    {facultyList.find(f => f._id === newEntry.facultyId)?.skills?.map(skill => (
-                                        <option key={skill} value={skill}>{skill}</option>
-                                    ))}
-                                </select>
+                                    options={facultyList.find(f => f._id === newEntry.facultyId)?.skills?.map(skill => ({
+                                        value: skill,
+                                        label: skill,
+                                        sub: "Primary Subject Area"
+                                    })) || []}
+                                    required
+                                />
                             </div>
 
                             <div className="input-group">
-                                <label className="input-label">Session Type</label>
-                                <select className="input-field" value={newEntry.type} onChange={(e) => setNewEntry({ ...newEntry, type: e.target.value })} required>
-                                    <option value="Theory">Theory (1h)</option>
-                                    <option value="Lab">Lab (1.5h)</option>
-                                </select>
+                                <CustomSelect
+                                    label="Session Type"
+                                    placeholder="Select Type"
+                                    value={newEntry.type}
+                                    onChange={(val) => setNewEntry({ ...newEntry, type: val })}
+                                    options={[
+                                        { value: 'Theory', label: 'Theory', sub: '1 hour session' },
+                                        { value: 'Lab', label: 'Lab', sub: '1.5 hour session' }
+                                    ]}
+                                    required
+                                />
                             </div>
 
                             <div className="input-group">
-                                <label className="input-label">Day</label>
-                                <select className="input-field" value={newEntry.day} onChange={(e) => setNewEntry({ ...newEntry, day: e.target.value })} required>
-                                    <option value="">Select Day</option>
-                                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(d => <option key={d} value={d}>{d}</option>)}
-                                </select>
+                                <CustomSelect
+                                    label="Day"
+                                    placeholder="Select Day"
+                                    value={newEntry.day}
+                                    onChange={(val) => setNewEntry({ ...newEntry, day: val })}
+                                    options={['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(d => ({ value: d, label: d }))}
+                                    required
+                                />
                             </div>
 
                             <div className="input-group">
@@ -406,19 +466,19 @@ const AcademicsDashboard = () => {
 
                             {/* [CHANGED] Class / Year is now a dropdown */}
                             <div className="input-group">
-                                <label className="input-label">Class / Year</label>
-                                <select
-                                    className="input-field"
+                                <CustomSelect
+                                    label="Class / Year"
+                                    placeholder="Select Year"
                                     value={newEntry.classYear}
-                                    onChange={(e) => setNewEntry({ ...newEntry, classYear: e.target.value })}
+                                    onChange={(val) => setNewEntry({ ...newEntry, classYear: val })}
+                                    options={[
+                                        { value: '1st Year', label: '1st Year', sub: 'Undergraduate' },
+                                        { value: '2nd Year', label: '2nd Year', sub: 'Undergraduate' },
+                                        { value: '3rd Year', label: '3rd Year', sub: 'Undergraduate' },
+                                        { value: '4th Year', label: '4th Year', sub: 'Undergraduate' }
+                                    ]}
                                     required
-                                >
-                                    <option value="">Select Year</option>
-                                    <option value="1st Year">1st Year</option>
-                                    <option value="2nd Year">2nd Year</option>
-                                    <option value="3rd Year">3rd Year</option>
-                                    <option value="4th Year">4th Year</option>
-                                </select>
+                                />
                             </div>
 
                             <div className="input-group" style={{ gridColumn: 'span 2' }}>
@@ -536,18 +596,14 @@ const AcademicsDashboard = () => {
                                     <label className="input-label">Faculty Member</label>
                                     <input className="input-field" value={editingRequest.facultyId?.name || ''} disabled style={{ background: '#f1f5f9' }} />
                                 </div>
-                                <div className="input-group">
-                                    <label className="input-label">Department</label>
-                                    <select
-                                        className="input-field"
-                                        value={editingRequest.department || ''}
-                                        onChange={(e) => setEditingRequest({ ...editingRequest, department: e.target.value })}
-                                        required
-                                    >
-                                        <option value="">Select Department</option>
-                                        {departments.map(d => <option key={d._id} value={d._id}>{d.name}</option>)}
-                                    </select>
-                                </div>
+                                <CustomSelect
+                                    label="Department"
+                                    placeholder="Select Department"
+                                    value={editingRequest.department || ''}
+                                    onChange={(val) => setEditingRequest({ ...editingRequest, department: val })}
+                                    options={departments.map(d => ({ value: d._id, label: d.name }))}
+                                    required
+                                />
                                 <div className="input-group" style={{ gridColumn: 'span 2' }}>
                                     <label className="input-label">Reason</label>
                                     <input
@@ -557,20 +613,20 @@ const AcademicsDashboard = () => {
                                         required
                                     />
                                 </div>
-                                <div className="input-group">
-                                    <label className="input-label">Status</label>
-                                    <select
-                                        className="input-field"
-                                        value={editingRequest.status}
-                                        onChange={(e) => setEditingRequest({ ...editingRequest, status: e.target.value })}
-                                    >
-                                        <option value="Pending">Pending</option>
-                                        <option value="Approved">Approved</option>
-                                        <option value="Rejected">Rejected</option>
-                                        <option value="Escalated">Escalated</option>
-                                        <option value="Reassigned">Reassigned</option>
-                                    </select>
-                                </div>
+                                <CustomSelect
+                                    label="Status"
+                                    placeholder="Select Status"
+                                    value={editingRequest.status}
+                                    onChange={(val) => setEditingRequest({ ...editingRequest, status: val })}
+                                    options={[
+                                        { value: 'Pending', label: 'Pending', sub: 'Awaiting review' },
+                                        { value: 'Approved', label: 'Approved', sub: 'Request accepted' },
+                                        { value: 'Rejected', label: 'Rejected', sub: 'Request declined' },
+                                        { value: 'Escalated', label: 'Escalated', sub: 'Requires higher review' },
+                                        { value: 'Reassigned', label: 'Reassigned', sub: 'Shifted to another faculty' }
+                                    ]}
+                                    required
+                                />
                                 <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '1rem', marginTop: '1rem' }}>
                                     <button type="submit" className="btn" style={{ flex: 1 }}>Update Request</button>
                                     <button
@@ -830,29 +886,30 @@ const AcademicsDashboard = () => {
                                                 />
                                             </div>
                                             <div style={{ marginBottom: '1rem' }}>
-                                                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '600', color: '#475569', marginBottom: '0.4rem' }}>Priority</label>
-                                                <select
-                                                    className="input-field"
-                                                    style={{ width: '100%', boxSizing: 'border-box' }}
+                                                <CustomSelect
+                                                    label="Priority"
+                                                    placeholder="Select Priority"
                                                     value={editingQueryData.priority}
-                                                    onChange={e => setEditingQueryData({ ...editingQueryData, priority: e.target.value })}
-                                                >
-                                                    <option value="Low">Low</option>
-                                                    <option value="Medium">Medium</option>
-                                                    <option value="High">High</option>
-                                                </select>
+                                                    onChange={(val) => setEditingQueryData({ ...editingQueryData, priority: val })}
+                                                    options={[
+                                                        { value: 'Low', label: 'Low' },
+                                                        { value: 'Medium', label: 'Medium' },
+                                                        { value: 'High', label: 'High' }
+                                                    ]}
+                                                />
                                             </div>
                                             <div style={{ marginBottom: '1.5rem' }}>
-                                                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: '600', color: '#475569', marginBottom: '0.4rem' }}>Status</label>
-                                                <select
-                                                    className="input-field"
-                                                    style={{ width: '100%', boxSizing: 'border-box' }}
+                                                <CustomSelect
+                                                    label="Status"
+                                                    placeholder="Select Status"
                                                     value={editingQueryData.status}
-                                                    onChange={e => setEditingQueryData({ ...editingQueryData, status: e.target.value })}
-                                                >
-                                                    <option value="Pending">Pending</option>
-                                                    <option value="Resolved">Resolved</option>
-                                                </select>
+                                                    onChange={(val) => setEditingQueryData({ ...editingQueryData, status: val })}
+                                                    options={[
+                                                        { value: 'Pending', label: 'Pending', sub: 'Waiting for action' },
+                                                        { value: 'Resolved', label: 'Resolved', sub: 'Issue handled' }
+                                                    ]}
+                                                    required
+                                                />
                                             </div>
                                             <div style={{ display: 'flex', gap: '0.75rem' }}>
                                                 <button type="submit" style={{
@@ -1260,19 +1317,46 @@ const AcademicsDashboard = () => {
                     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
                     background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
                 }}>
-                    <div className="card" style={{ width: '500px', padding: '2rem' }}>
+                    <div className="card" style={{ width: '500px', padding: '2rem', maxHeight: '90vh', overflowY: 'auto' }}>
                         <h2 style={{ marginBottom: '1.5rem', color: '#1e3a8a' }}>✏️ Edit Timetable Entry</h2>
+                        {/* Conflict / Validation Notification Banner (Edit Modal) */}
+                        {notification && (
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'flex-start',
+                                gap: '0.75rem',
+                                padding: '0.85rem 1rem',
+                                marginBottom: '1.25rem',
+                                borderRadius: '10px',
+                                border: `1px solid ${notification.type === 'success' ? '#86efac' : '#fca5a5'}`,
+                                background: notification.type === 'success' ? '#f0fdf4' : '#fff5f5',
+                                color: notification.type === 'success' ? '#166534' : '#991b1b',
+                                fontSize: '0.875rem',
+                                fontWeight: '500',
+                                lineHeight: '1.4'
+                            }}>
+                                <span style={{ fontSize: '1rem', flexShrink: 0 }}>
+                                    {notification.type === 'success' ? '✅' : '🚫'}
+                                </span>
+                                <span style={{ flex: 1 }}>{notification.msg}</span>
+                                <button type="button" onClick={() => setNotification(null)}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', opacity: 0.6, fontSize: '0.9rem', padding: 0 }}>✕</button>
+                            </div>
+                        )}
                         <form onSubmit={handleEditEntrySubmit} className="form-grid">
                             <div className="form-group">
-                                <label>Faculty Member</label>
-                                <select
-                                    className="input-field"
+                                <CustomSelect
+                                    label="Faculty Member"
+                                    placeholder="Select Faculty"
                                     value={editingEntryData.facultyId}
-                                    onChange={(e) => setEditingEntryData({ ...editingEntryData, facultyId: e.target.value })}
+                                    onChange={(val) => setEditingEntryData({ ...editingEntryData, facultyId: val })}
+                                    options={facultyList.map(f => ({ 
+                                        value: f._id, 
+                                        label: f.name,
+                                        sub: f.designation 
+                                    }))}
                                     required
-                                >
-                                    {facultyList.map(f => <option key={f._id} value={f._id}>{f.name}</option>)}
-                                </select>
+                                />
                             </div>
                             <div className="form-group">
                                 <label>Date</label>
@@ -1285,26 +1369,24 @@ const AcademicsDashboard = () => {
                                 />
                             </div>
                             <div className="form-group">
-                                <label>Period (1-8)</label>
-                                <select
-                                    className="input-field"
+                                <CustomSelect
+                                    label="Period (1-8)"
+                                    placeholder="Select Period"
                                     value={editingEntryData.period}
-                                    onChange={(e) => setEditingEntryData({ ...editingEntryData, period: e.target.value })}
+                                    onChange={(val) => setEditingEntryData({ ...editingEntryData, period: val })}
+                                    options={[1, 2, 3, 4, 5, 6, 7, 8].map(p => ({ value: p, label: `Period ${p}` }))}
                                     required
-                                >
-                                    {[1, 2, 3, 4, 5, 6, 7, 8].map(p => <option key={p} value={p}>{p}</option>)}
-                                </select>
+                                />
                             </div>
                             <div className="form-group">
-                                <label>Day</label>
-                                <select
-                                    className="input-field"
+                                <CustomSelect
+                                    label="Day"
+                                    placeholder="Select Day"
                                     value={editingEntryData.day}
-                                    onChange={(e) => setEditingEntryData({ ...editingEntryData, day: e.target.value })}
+                                    onChange={(val) => setEditingEntryData({ ...editingEntryData, day: val })}
+                                    options={['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(d => ({ value: d, label: d }))}
                                     required
-                                >
-                                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(d => <option key={d} value={d}>{d}</option>)}
-                                </select>
+                                />
                             </div>
                             <div className="form-group">
                                 <label>Subject</label>
@@ -1324,29 +1406,32 @@ const AcademicsDashboard = () => {
                                 />
                             </div>
                             <div className="form-group">
-                                <label>Type</label>
-                                <select
-                                    className="input-field"
+                                <CustomSelect
+                                    label="Type"
+                                    placeholder="Select Type"
                                     value={editingEntryData.type}
-                                    onChange={(e) => setEditingEntryData({ ...editingEntryData, type: e.target.value })}
-                                >
-                                    <option value="Theory">Theory</option>
-                                    <option value="Lab">Lab</option>
-                                </select>
+                                    onChange={(val) => setEditingEntryData({ ...editingEntryData, type: val })}
+                                    options={[
+                                        { value: 'Theory', label: 'Theory', sub: '1 hour' },
+                                        { value: 'Lab', label: 'Lab', sub: '1.5 hours' }
+                                    ]}
+                                    required
+                                />
                             </div>
                             <div className="form-group">
-                                <label>Class / Year</label>
-                                <select
-                                    className="input-field"
+                                <CustomSelect
+                                    label="Class / Year"
+                                    placeholder="Select Year"
                                     value={editingEntryData.classYear}
-                                    onChange={(e) => setEditingEntryData({ ...editingEntryData, classYear: e.target.value })}
+                                    onChange={(val) => setEditingEntryData({ ...editingEntryData, classYear: val })}
+                                    options={[
+                                        { value: '1st Year', label: '1st Year', sub: 'UG' },
+                                        { value: '2nd Year', label: '2nd Year', sub: 'UG' },
+                                        { value: '3rd Year', label: '3rd Year', sub: 'UG' },
+                                        { value: '4th Year', label: '4th Year', sub: 'UG' }
+                                    ]}
                                     required
-                                >
-                                    <option value="1st Year">1st Year</option>
-                                    <option value="2nd Year">2nd Year</option>
-                                    <option value="3rd Year">3rd Year</option>
-                                    <option value="4th Year">4th Year</option>
-                                </select>
+                                />
                             </div>
                             <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', gridColumn: 'span 2' }}>
                                 <button type="submit" className="btn btn-primary-gradient" style={{ flex: 1 }}>Save Changes</button>

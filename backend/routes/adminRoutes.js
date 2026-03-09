@@ -16,7 +16,8 @@ const {
     createSubject,
     getSubjects,
     updateSubject,
-    deleteSubject
+    deleteSubject,
+    updateFacultyAvailability
 } = require('../controllers/adminController');
 
 
@@ -39,6 +40,7 @@ router.post('/faculty', [auth, checkRole(['admin'])], addFaculty);
 router.get('/faculty', [auth, checkRole(['admin', 'academics'])], getAllFaculty);
 router.put('/faculty/:id', [auth, checkRole(['admin'])], updateFaculty);
 router.delete('/faculty/:id', [auth, checkRole(['admin'])], deleteFaculty);
+router.put('/faculty/:id/availability', [auth, checkRole(['admin', 'academics'])], updateFacultyAvailability);
 
 router.post('/academics', [auth, checkRole(['admin'])], addAcademicsUser);
 

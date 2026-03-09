@@ -267,6 +267,28 @@ exports.deleteFaculty = async (req, res) => {
         res.status(500).send('Server error');
     }
 };
+// ─── FACULTY AVAILABILITY ────────────────────────────────────────────────────
+
+// @desc    Update faculty unavailability (days & periods they are unavailable)
+// @route   PUT /api/admin/faculty/:id/availability
+// @access  Admin, Academics
+exports.updateFacultyAvailability = async (req, res) => {
+    const { unavailableDays, unavailablePeriods } = req.body;
+    try {
+        const faculty = await Faculty.findById(req.params.id);
+        if (!faculty) return res.status(404).json({ msg: 'Faculty member not found' });
+
+        if (unavailableDays !== undefined) faculty.unavailableDays = unavailableDays;
+        if (unavailablePeriods !== undefined) faculty.unavailablePeriods = unavailablePeriods;
+
+        await faculty.save();
+        res.json({ msg: 'Faculty availability updated', faculty });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+};
+
 // ─── SUBJECT MANAGEMENT ──────────────────────────────────────────────────────
 
 // @desc    Create a new subject

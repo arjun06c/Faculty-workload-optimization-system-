@@ -9,6 +9,7 @@ const FacultyDashboard = () => {
     const navigate = useNavigate();
     const [facultyProfile, setFacultyProfile] = useState(null);
     const [timetable, setTimetable] = useState([]);
+    const [allTimetable, setAllTimetable] = useState([]); // Full timetable for workload form period picker
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]); // YYYY-MM-DD
 
     // Feature States
@@ -31,6 +32,12 @@ const FacultyDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
     const [error, setError] = useState('');
+    const [workloadNotification, setWorkloadNotification] = useState(null);
+
+    const showWorkloadNotification = (type, msg) => {
+        setWorkloadNotification({ type, msg });
+        setTimeout(() => setWorkloadNotification(null), 7000);
+    };
 
     // Editing State for Queries
     const [isEditingQuery, setIsEditingQuery] = useState(false);
@@ -52,6 +59,11 @@ const FacultyDashboard = () => {
                 : `/faculty/timetable`; // Fetch all for weekly
             const timetableRes = await api.get(timetableUrl);
             setTimetable(timetableRes.data);
+
+            // Always fetch the full (all weeks) timetable regardless of view mode
+            // This is used by the workload request form's smart period picker
+            const fullTimetableRes = await api.get('/faculty/timetable');
+            setAllTimetable(fullTimetableRes.data);
 
             const requestsRes = await api.get('/faculty/workload-requests');
             setRequests(requestsRes.data);
@@ -145,13 +157,17 @@ const FacultyDashboard = () => {
     const handleRequestSubmit = async (e) => {
         e.preventDefault();
         try {
-            // Validate
+            // Frontend validation
             if (!workloadForm.date || !workloadForm.reason) {
-                alert('Please fill Date and Reason');
+                showWorkloadNotification('error', 'Please fill in the Date and Reason fields.');
                 return;
             }
             if (workloadForm.type === 'SINGLE' && !workloadForm.period) {
-                alert('Please select a period for single leave');
+                showWorkloadNotification('error', 'Please select an assigned period for your request.');
+                return;
+            }
+            if (workloadForm.reason === 'Other (Specify Reason)' && !workloadForm.otherReason.trim()) {
+                showWorkloadNotification('error', 'Please specify the reason in the text field.');
                 return;
             }
 
@@ -160,15 +176,9 @@ const FacultyDashboard = () => {
                 reason: workloadForm.reason === 'Other (Specify Reason)' ? workloadForm.otherReason : workloadForm.reason,
                 type: workloadForm.type,
                 periods: workloadForm.type === 'FULL_DAY'
-                    ? [1, 2, 3, 4, 5, 6, 7, 8] // Assume all periods for now
+                    ? [1, 2, 3, 4, 5, 6, 7, 8]
                     : [parseInt(workloadForm.period)]
             };
-
-            // Double check validation for "Other"
-            if (workloadForm.reason === 'Other (Specify Reason)' && !workloadForm.otherReason.trim()) {
-                alert('Please specify the reason');
-                return;
-            }
 
             await api.post('/faculty/workload-request', payload);
             setWorkloadForm({
@@ -179,10 +189,10 @@ const FacultyDashboard = () => {
                 type: 'SINGLE',
                 periods: []
             });
-            alert('Workload request submitted!');
+            showWorkloadNotification('success', 'Workload request submitted successfully!');
             fetchFacultyData();
         } catch (err) {
-            alert('Error submitting request');
+            showWorkloadNotification('error', err.response?.data?.msg || 'Error submitting request. Please try again.');
         }
     };
 
@@ -587,17 +597,17 @@ const FacultyDashboard = () => {
                                         required
                                     />
                                 </div>
-                                <div className="input-group">
-                                    <label className="input-label">Priority</label>
-                                    <select
-                                        className="input-field"
-                                        value={queryForm.priority}
-                                        onChange={(e) => setQueryForm({ ...queryForm, priority: e.target.value })}
-                                    >
-                                        <option value="Low">Low</option>
-                                        <option value="Medium">Medium</option>
-                                    </select>
-                                </div>
+                                <CustomSelect
+                                    label="Priority"
+                                    placeholder="Select Priority"
+                                    value={queryForm.priority}
+                                    onChange={(val) => setQueryForm({ ...queryForm, priority: val })}
+                                    options={[
+                                        { value: 'Low', label: 'Low', sub: 'Standard response' },
+                                        { value: 'Medium', label: 'Medium', sub: 'Urgent attention' }
+                                    ]}
+                                    required
+                                />
                                 <div className="input-group" style={{ gridColumn: 'span 2' }}>
                                     <label className="input-label">Message</label>
                                     <textarea
@@ -617,110 +627,202 @@ const FacultyDashboard = () => {
                     )}
 
                     {/* Workload Request Form */}
-                    {newRequest.type === 'workload' && (
-                        <div className="card premium-form-card" style={{ padding: '2rem' }}>
-                            <h2 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <span>📅</span> Submit Request
-                            </h2>
-                            <form onSubmit={handleRequestSubmit} className="form-grid">
-                                <div className="input-group">
-                                    <label className="input-label">Date</label>
-                                    <input
-                                        type="date"
-                                        className="input-field"
-                                        value={workloadForm.date}
-                                        onChange={(e) => setWorkloadForm({ ...workloadForm, date: e.target.value })}
-                                        required
-                                    />
-                                </div>
+                    {newRequest.type === 'workload' && (() => {
+                        // Derive the day name from the selected date
+                        const selectedDateObj = workloadForm.date ? new Date(workloadForm.date) : null;
+                        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                        const selectedDayName = selectedDateObj ? dayNames[selectedDateObj.getUTCDay()] : null;
 
-                                {/* Request Type Toggle */}
-                                <div className="input-group">
-                                    <label className="input-label">Leave Type</label>
-                                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', height: '100%' }}>
-                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                                            <input
-                                                type="radio"
-                                                name="reqType"
-                                                checked={workloadForm.type === 'SINGLE'}
-                                                onChange={() => setWorkloadForm({ ...workloadForm, type: 'SINGLE' })}
-                                            /> Single Period
-                                        </label>
-                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                                            <input
-                                                type="radio"
-                                                name="reqType"
-                                                checked={workloadForm.type === 'FULL_DAY'}
-                                                onChange={() => setWorkloadForm({ ...workloadForm, type: 'FULL_DAY', period: '' })}
-                                            /> Full Day
-                                        </label>
+                        // Filter allTimetable to get only periods assigned to THIS faculty on THAT day
+                        const assignedPeriodsForDate = allTimetable.filter(slot =>
+                            slot.day === selectedDayName
+                        ).sort((a, b) => a.period - b.period);
+
+                        const isWeekend = selectedDayName === 'Saturday' || selectedDayName === 'Sunday';
+                        const hasNoClasses = !isWeekend && selectedDayName && assignedPeriodsForDate.length === 0;
+
+                        return (
+                            <div className="card premium-form-card" style={{ padding: '2rem' }}>
+                                <h2 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <span>📅</span> Submit Workload Request
+                                </h2>
+
+                                {/* Inline Notification Banner */}
+                                {workloadNotification && (
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'flex-start',
+                                        gap: '0.75rem',
+                                        padding: '0.9rem 1.1rem',
+                                        marginBottom: '1.25rem',
+                                        borderRadius: '10px',
+                                        border: `1px solid ${workloadNotification.type === 'success' ? '#86efac' : '#fca5a5'}`,
+                                        background: workloadNotification.type === 'success' ? '#f0fdf4' : '#fff5f5',
+                                        color: workloadNotification.type === 'success' ? '#166534' : '#991b1b',
+                                        animation: 'fadeInDown 0.3s ease',
+                                        fontSize: '0.875rem',
+                                        fontWeight: '500',
+                                        lineHeight: '1.5'
+                                    }}>
+                                        <span style={{ fontSize: '1.1rem', flexShrink: 0 }}>
+                                            {workloadNotification.type === 'success' ? '✅' : '🚫'}
+                                        </span>
+                                        <span style={{ flex: 1 }}>{workloadNotification.msg}</span>
+                                        <button type="button" onClick={() => setWorkloadNotification(null)}
+                                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', opacity: 0.6, fontSize: '1rem', padding: 0 }}>✕</button>
                                     </div>
-                                </div>
+                                )}
 
-                                {workloadForm.type === 'SINGLE' && (
+                                {/* No-classes notice for selected date */}
+                                {(isWeekend || hasNoClasses) && (
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.65rem',
+                                        padding: '0.75rem 1rem',
+                                        marginBottom: '1.25rem',
+                                        borderRadius: '10px',
+                                        border: '1px solid #fde68a',
+                                        background: '#fffbeb',
+                                        color: '#92400e',
+                                        fontSize: '0.85rem',
+                                        fontWeight: '500'
+                                    }}>
+                                        <span style={{ fontSize: '1rem' }}>⚠️</span>
+                                        {isWeekend
+                                            ? `${selectedDayName} is a weekend. No classes are scheduled. Please select a weekday.`
+                                            : `You have no classes assigned on ${selectedDayName}. Please pick a date when you have classes to request workload changes.`
+                                        }
+                                    </div>
+                                )}
+
+                                <form onSubmit={handleRequestSubmit} className="form-grid">
                                     <div className="input-group">
-                                        <label className="input-label">Period (1-8)</label>
+                                        <label className="input-label">Date</label>
                                         <input
-                                            type="number"
-                                            min="1" max="8"
+                                            type="date"
                                             className="input-field"
-                                            value={workloadForm.period}
-                                            onChange={(e) => setWorkloadForm({ ...workloadForm, period: e.target.value })}
+                                            value={workloadForm.date}
+                                            onChange={(e) => setWorkloadForm({ ...workloadForm, date: e.target.value, period: '' })}
                                             required
                                         />
                                     </div>
-                                )}
 
-                                <div className="input-group" style={{ gridColumn: 'span 2' }}>
-                                    <CustomSelect
-                                        label="Reason"
-                                        placeholder="Select Reason"
-                                        value={workloadForm.reason}
-                                        options={[
-                                            { value: 'On Duty (OD) – Official Academic Work', label: 'On Duty (OD)', sub: 'Official Academic Work' },
-                                            { value: 'Medical Leave', label: 'Medical Leave', sub: 'Personal health' },
-                                            { value: 'Personal Leave', label: 'Personal Leave', sub: 'Urgent personal work' },
-                                            { value: 'Department Meeting / Administrative Work', label: 'Dept. Meeting', sub: 'Administrative Work' },
-                                            { value: 'University / Examination Duty', label: 'Uni / Exam Duty', sub: 'Official Exam Duty' },
-                                            { value: 'Seminar / Workshop / Conference Participation', label: 'Seminar / Workshop', sub: 'Academic Conference' },
-                                            { value: 'Research or Project Work', label: 'Research Work', sub: 'Academic Research' },
-                                            { value: 'Student Mentoring or Academic Counseling', label: 'Student Mentoring', sub: 'Counseling Work' },
-                                            { value: 'Over Workload – Request Redistribution', label: 'Over Workload', sub: 'Redistribution Request' },
-                                            { value: 'Class Schedule Conflict', label: 'Schedule Conflict', sub: 'Clash Resolution' },
-                                            { value: 'Not Available for This Period', label: 'Not Available', sub: 'Unavailable' },
-                                            { value: 'Emergency Leave', label: 'Emergency', sub: 'Sudden Emergency' },
-                                            { value: 'Other (Specify Reason)', label: 'Other', sub: 'Specify specialized reason' }
-                                        ]}
-                                        onChange={(val) => setWorkloadForm({ ...workloadForm, reason: val })}
-                                        renderOption={(opt) => (
-                                            <>
-                                                <span className="option-title">{opt.label}</span>
-                                                <span className="option-subtitle">{opt.sub}</span>
-                                            </>
-                                        )}
-                                        required
-                                    />
-                                </div>
+                                    {/* Request Type Toggle */}
+                                    <div className="input-group">
+                                        <label className="input-label">Leave Type</label>
+                                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', height: '100%' }}>
+                                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                                                <input
+                                                    type="radio"
+                                                    name="reqType"
+                                                    checked={workloadForm.type === 'SINGLE'}
+                                                    onChange={() => setWorkloadForm({ ...workloadForm, type: 'SINGLE', period: '' })}
+                                                /> Single Period
+                                            </label>
+                                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                                                <input
+                                                    type="radio"
+                                                    name="reqType"
+                                                    checked={workloadForm.type === 'FULL_DAY'}
+                                                    onChange={() => setWorkloadForm({ ...workloadForm, type: 'FULL_DAY', period: '' })}
+                                                /> Full Day
+                                            </label>
+                                        </div>
+                                    </div>
 
-                                {workloadForm.reason === 'Other (Specify Reason)' && (
+                                    {/* Smart Period Picker — only assigned periods */}
+                                    {workloadForm.type === 'SINGLE' && (
+                                        <div className="input-group" style={{ gridColumn: 'span 2' }}>
+                                            <CustomSelect
+                                                label="Select Assigned Period"
+                                                placeholder={
+                                                    !workloadForm.date
+                                                        ? 'Select a date first'
+                                                        : assignedPeriodsForDate.length === 0
+                                                            ? 'No assigned periods on this day'
+                                                            : 'Select your assigned period'
+                                                }
+                                                value={workloadForm.period}
+                                                onChange={(val) => setWorkloadForm({ ...workloadForm, period: val })}
+                                                disabled={assignedPeriodsForDate.length === 0}
+                                                options={assignedPeriodsForDate.map(slot => ({
+                                                    value: slot.period,
+                                                    label: `Period ${slot.period} — ${slot.subject}`,
+                                                    sub: `${slot.classYear} • Room ${slot.roomNumber} • ${slot.type}`
+                                                }))}
+                                                required
+                                            />
+                                            {assignedPeriodsForDate.length > 0 && (
+                                                <p style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.4rem' }}>
+                                                    🔒 Only your assigned periods for {selectedDayName} are shown.
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Full Day Summary */}
+                                    {workloadForm.type === 'FULL_DAY' && assignedPeriodsForDate.length > 0 && (
+                                        <div style={{
+                                            gridColumn: 'span 2',
+                                            padding: '0.85rem 1rem',
+                                            borderRadius: '10px',
+                                            background: '#f0f9ff',
+                                            border: '1px solid #bae6fd',
+                                            color: '#0369a1',
+                                            fontSize: '0.85rem',
+                                            fontWeight: '500'
+                                        }}>
+                                            📋 This will cover all <strong>{assignedPeriodsForDate.length} period(s)</strong> you are assigned on <strong>{selectedDayName}</strong>:&nbsp;
+                                            {assignedPeriodsForDate.map(s => `Period ${s.period} (${s.subject})`).join(', ')}
+                                        </div>
+                                    )}
+
                                     <div className="input-group" style={{ gridColumn: 'span 2' }}>
-                                        <label className="input-label">Specify Reason</label>
-                                        <input
-                                            type="text"
-                                            className="input-field"
-                                            placeholder="Type your custom reason here..."
-                                            value={workloadForm.otherReason}
-                                            onChange={(e) => setWorkloadForm({ ...workloadForm, otherReason: e.target.value })}
+                                        <CustomSelect
+                                            label="Reason"
+                                            placeholder="Select Reason"
+                                            value={workloadForm.reason}
+                                            options={[
+                                                { value: 'On Duty (OD) – Official Academic Work', label: 'On Duty (OD)', sub: 'Official Academic Work' },
+                                                { value: 'Medical Leave', label: 'Medical Leave', sub: 'Personal health' },
+                                                { value: 'Personal Leave', label: 'Personal Leave', sub: 'Urgent personal work' },
+                                                { value: 'Department Meeting / Administrative Work', label: 'Dept. Meeting', sub: 'Administrative Work' },
+                                                { value: 'University / Examination Duty', label: 'Uni / Exam Duty', sub: 'Official Exam Duty' },
+                                                { value: 'Seminar / Workshop / Conference Participation', label: 'Seminar / Workshop', sub: 'Academic Conference' },
+                                                { value: 'Research or Project Work', label: 'Research Work', sub: 'Academic Research' },
+                                                { value: 'Student Mentoring or Academic Counseling', label: 'Student Mentoring', sub: 'Counseling Work' },
+                                                { value: 'Over Workload – Request Redistribution', label: 'Over Workload', sub: 'Redistribution Request' },
+                                                { value: 'Class Schedule Conflict', label: 'Schedule Conflict', sub: 'Clash Resolution' },
+                                                { value: 'Not Available for This Period', label: 'Not Available', sub: 'Unavailable' },
+                                                { value: 'Emergency Leave', label: 'Emergency', sub: 'Sudden Emergency' },
+                                                { value: 'Other (Specify Reason)', label: 'Other', sub: 'Specify specialized reason' }
+                                            ]}
+                                            onChange={(val) => setWorkloadForm({ ...workloadForm, reason: val })}
                                             required
                                         />
                                     </div>
-                                )}
-                                <button type="submit" className="btn btn-primary-gradient" style={{ gridColumn: 'span 2' }}>
-                                    Submit Request →
-                                </button>
-                            </form>
-                        </div>
-                    )}
+
+                                    {workloadForm.reason === 'Other (Specify Reason)' && (
+                                        <div className="input-group" style={{ gridColumn: 'span 2' }}>
+                                            <label className="input-label">Specify Reason</label>
+                                            <input
+                                                type="text"
+                                                className="input-field"
+                                                placeholder="Type your custom reason here..."
+                                                value={workloadForm.otherReason}
+                                                onChange={(e) => setWorkloadForm({ ...workloadForm, otherReason: e.target.value })}
+                                                required
+                                            />
+                                        </div>
+                                    )}
+                                    <button type="submit" className="btn btn-primary-gradient" style={{ gridColumn: 'span 2' }}>
+                                        Submit Request →
+                                    </button>
+                                </form>
+                            </div>
+                        );
+                    })()}
 
                     {/* History Section */}
                     <div className="card" style={{ padding: '2rem', flex: 1 }}>
@@ -742,12 +844,6 @@ const FacultyDashboard = () => {
                                                 <h3 className="text-lg font-bold text-slate-800">Recent Queries</h3>
                                                 <p className="text-xs text-slate-500 font-medium">{queries.length} total queries</p>
                                             </div>
-                                            <button 
-                                                onClick={() => navigate('/queries')}
-                                                className="text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 hover:bg-blue-600 hover:text-white transition-all shadow-sm"
-                                            >
-                                                Full History →
-                                            </button>
                                         </div>
 
                                         <div className="flex flex-col gap-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
@@ -844,12 +940,6 @@ const FacultyDashboard = () => {
                                                                 { value: 'High', label: 'High', sub: 'Urgent attention' }
                                                             ]}
                                                             onChange={(val) => setEditingQueryData({ ...editingQueryData, priority: val })}
-                                                            renderOption={(opt) => (
-                                                                <>
-                                                                    <span className="option-title font-bold text-slate-700 text-sm">{opt.label}</span>
-                                                                    <span className="option-subtitle text-[10px] text-slate-400 font-medium">{opt.sub}</span>
-                                                                </>
-                                                            )}
                                                         />
                                                         <div className="flex gap-2 pt-2">
                                                             <button type="submit" className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-lg shadow-blue-500/25 transition-all">

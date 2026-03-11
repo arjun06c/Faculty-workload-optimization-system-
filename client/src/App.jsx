@@ -34,6 +34,7 @@ function App() {
               <Route path="/academic/dashboard" element={<AcademicsDashboard />} />
               <Route path="/academic" element={<Navigate to="/academic/dashboard" replace />} />
               <Route path="/academic/faculty/:id" element={<FacultyTimetableView />} />
+              <Route path="/academics/faculty/:id" element={<FacultyTimetableView />} />
               <Route path="/academics" element={<Navigate to="/academic/dashboard" replace />} />
             </Route>
 

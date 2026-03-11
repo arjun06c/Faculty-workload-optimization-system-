@@ -515,7 +515,7 @@ const AcademicsDashboard = () => {
                                     return (
                                         <div
                                             key={f._id}
-                                            onClick={() => navigate(`/academics/faculty/${f._id}`)}
+                                            onClick={() => navigate(`/academic/faculty/${f._id}`)}
                                             style={{
                                                 marginBottom: '1rem',
                                                 padding: '1.25rem',
@@ -1119,10 +1119,10 @@ const AcademicsDashboard = () => {
                                 <h2 style={{ margin: 0, color: '#1e293b' }}>
                                     {departments.find(d => d._id === drillDown.deptId)?.name} Faculty Workload
                                 </h2>
-                                <input
-                                    className="input-field"
-                                    style={{ width: '300px' }}
-                                    placeholder="Search faculty..."
+                                    <input
+                                        className="input-field"
+                                        style={{ width: '100%', maxWidth: '300px' }}
+                                        placeholder="Search faculty..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                 />
@@ -1188,7 +1188,7 @@ const AcademicsDashboard = () => {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                             {/* Profile Section */}
                             <div className="card" style={{ padding: '2rem', borderLeft: '6px solid var(--primary)' }}>
-                                <div style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
+                                <div style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
                                     <div style={{
                                         width: '100px', height: '100px', borderRadius: '50%', background: '#eff6ff',
                                         display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.5rem', color: '#3b82f6'
@@ -1202,7 +1202,7 @@ const AcademicsDashboard = () => {
                                                 padding: '0.4rem 1rem', background: '#ecfdf5', color: '#059669', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold'
                                             }}>Scheduled Profile</span>
                                         </div>
-                                        <div className="form-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+                                        <div className="form-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
                                             <div>
                                                 <label style={{ fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase' }}>Department</label>
                                                 <div style={{ fontWeight: '600', color: '#334155' }}>{officeFullDetails.profile.department?.name}</div>
@@ -1313,11 +1313,8 @@ const AcademicsDashboard = () => {
             )}
             {/* Edit Entry Modal */}
             {isEditingEntry && editingEntryData && (
-                <div className="modal-overlay" style={{
-                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                    background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
-                }}>
-                    <div className="card" style={{ width: '500px', padding: '2rem', maxHeight: '90vh', overflowY: 'auto' }}>
+                <div className="modal-overlay">
+                    <div className="card modal-content">
                         <h2 style={{ marginBottom: '1.5rem', color: '#1e3a8a' }}>✏️ Edit Timetable Entry</h2>
                         {/* Conflict / Validation Notification Banner (Edit Modal) */}
                         {notification && (

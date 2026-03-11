@@ -306,7 +306,7 @@ const AdminDashboard = () => {
                             value={newDeptName}
                             onChange={(e) => setNewDeptName(e.target.value)}
                             required
-                            style={{ flex: 1, minWidth: '200px' }}
+                            style={{ flex: 1 }}
                         />
                         <button type="submit" className="btn">{isEditingDept ? 'Update' : 'Create'}</button>
                         {isEditingDept && (
@@ -564,14 +564,13 @@ const AdminDashboard = () => {
                                     value={selectedDeptId}
                                     onChange={(val) => setSelectedDeptId(val)}
                                     options={departments.map(d => ({ value: d._id, label: d.name }))}
-                                    style={{ minWidth: '180px' }}
                                 />
 
                             </div>
                         </div>
 
                         <div className="table-container">
-                            <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 10px', minWidth: '800px' }}>
+                            <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 10px' }}>
                                 <thead>
                                     <tr style={{ textAlign: 'left', borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.9rem' }}>
                                         <th style={{ padding: '0.5rem 1rem' }}>Name & Designation</th>
@@ -736,7 +735,6 @@ const AdminDashboard = () => {
                                 value={selectedDeptId}
                                 onChange={(val) => setSelectedDeptId(val)}
                                 options={departments.map(d => ({ value: d._id, label: d.name }))}
-                                style={{ minWidth: '180px' }}
                             />
                         </div>
 
@@ -868,7 +866,7 @@ const AdminDashboard = () => {
                                 value={newAcademics.email}
                                 onChange={(e) => setNewAcademics({ ...newAcademics, email: e.target.value })}
                                 required
-                                style={{ flex: 1, minWidth: '200px' }}
+                                style={{ flex: 1 }}
                                 autoComplete="off"
                             />
                             <input
@@ -878,7 +876,7 @@ const AdminDashboard = () => {
                                 value={newAcademics.password}
                                 onChange={(e) => setNewAcademics({ ...newAcademics, password: e.target.value })}
                                 required
-                                style={{ flex: 1, minWidth: '200px' }}
+                                style={{ flex: 1 }}
                                 autoComplete="new-password"
                             />
                             <button type="submit" className="btn">Create Account</button>
@@ -897,7 +895,6 @@ const AdminDashboard = () => {
                             value={selectedDeptId}
                             onChange={(val) => setSelectedDeptId(val)}
                             options={departments.map(d => ({ value: d._id, label: d.name }))}
-                            style={{ minWidth: '200px' }}
                         />
 
                     </div>

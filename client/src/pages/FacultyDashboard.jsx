@@ -254,19 +254,16 @@ const FacultyDashboard = () => {
     const workloadPercentage = (facultyProfile.currentHours / facultyProfile.maxHours) * 100;
 
     return (
-        <div className="page-container" style={{ background: '#f8fafc', minHeight: '100vh', padding: '2rem 1rem' }}>
+        <div className="page-container" style={{ background: '#f8fafc', minHeight: '100vh' }}>
             {/* Professional Profile Header */}
             {/* Professional Profile Header */}
-            <div className="card faculty-profile-card" style={{ position: 'relative', overflow: 'hidden' }}>
+            <div className="card faculty-profile-card">
                 <div className="faculty-profile-content" style={{ position: 'relative', zIndex: 1 }}>
                     <div 
-                        className={`faculty-profile-avatar ${uploading ? '' : 'hover:scale-110 transition-transform duration-300'}`}
+                        className={`faculty-profile-avatar flex-shrink-0 ${uploading ? '' : 'hover:scale-110 transition-transform duration-300'}`}
                         onClick={() => !uploading && document.getElementById('avatar-input').click()}
                         style={{
-                            background: facultyProfile?.userId?.picture ? `url("${BASE_URL}${facultyProfile.userId.picture}")` : 'linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%)',
-                            backgroundSize: 'cover',
-                            backgroundPosition: 'center',
-                            backgroundRepeat: 'no-repeat',
+                            background: facultyProfile?.userId?.picture ? 'white' : 'linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%)',
                             border: '4px solid #f8fafc',
                             boxShadow: '0 4px 12px rgba(79, 70, 229, 0.2)',
                             overflow: 'hidden',
@@ -278,14 +275,22 @@ const FacultyDashboard = () => {
                         }}
                     >
                         {uploading ? (
-                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
                                 <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                             </div>
                         ) : (
                             <>
-                                {!facultyProfile?.userId?.picture && (facultyProfile?.name?.charAt(0) || 'F')}
+                                {facultyProfile?.userId?.picture ? (
+                                    <img 
+                                        src={`${BASE_URL}${facultyProfile.userId.picture}`} 
+                                        alt="Profile" 
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%', flexShrink: 0 }}
+                                    />
+                                ) : (
+                                    <span className="relative z-10">{facultyProfile?.name?.charAt(0) || 'F'}</span>
+                                )}
                                 {/* Hover Overlay */}
-                                <div className="absolute inset-0 bg-black/20 opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity">
+                                <div className="absolute inset-0 bg-black/20 opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity z-20 rounded-full">
                                     <svg className="w-8 h-8 text-white/90 drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -354,7 +359,7 @@ const FacultyDashboard = () => {
                 {/* Column 1: Workload & Timetable */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                     {/* Workload Status Card */}
-                    <div className="card" style={{ padding: '2rem', background: 'white' }}>
+                    <div className="card" style={{ background: 'white' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                             <h2 style={{ margin: 0, fontSize: '1.25rem', color: '#0f172a' }}>Current Workload</h2>
                             <span style={{
@@ -407,11 +412,11 @@ const FacultyDashboard = () => {
                     </div>
 
                     {/* Timetable Grid with Toggle */}
-                    <div className="card" style={{ padding: '2rem', flex: 1 }}>
-                        <div className="flex-between-center" style={{ marginBottom: '1.5rem' }}>
+                    <div className="card">
+                        <div className="schedule-header">
                             <h2 style={{ margin: 0, fontSize: '1.25rem', color: '#0f172a' }}>📅 My Schedule</h2>
-                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                <div style={{ background: '#f1f5f9', padding: '0.25rem', borderRadius: '8px', display: 'flex', gap: '0.25rem', marginRight: '1rem' }}>
+                            <div className="schedule-controls">
+                                <div className="view-toggle" style={{ background: '#f1f5f9', padding: '0.25rem', borderRadius: '8px', display: 'flex', gap: '0.25rem', marginRight: '1rem' }}>
                                     <button
                                         onClick={() => setViewMode('daily')}
                                         style={{
@@ -433,7 +438,7 @@ const FacultyDashboard = () => {
                                 </div>
                                 <input
                                     type="date"
-                                    className="input-field"
+                                    className="input-field date-picker-input"
                                     style={{ width: 'auto', padding: '0.4rem' }}
                                     value={selectedDate}
                                     onChange={(e) => setSelectedDate(e.target.value)}
@@ -454,28 +459,27 @@ const FacultyDashboard = () => {
                                         <div key={session._id} className="ticket-card" style={{
                                             borderLeftColor: session.type === 'Lab' ? '#0ea5e9' : '#eab308'
                                         }}>
-                                            <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-                                                <div style={{
-                                                    width: '50px', height: '50px', borderRadius: '12px',
+                                            <div className="session-info">
+                                                <div className="period-display" style={{
                                                     background: session.type === 'Lab' ? '#e0f2fe' : '#fef9c3',
-                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                    fontSize: '1.25rem', fontWeight: '800', color: session.type === 'Lab' ? '#0369a1' : '#a16207'
+                                                    color: session.type === 'Lab' ? '#0369a1' : '#a16207'
                                                 }}>
                                                     {session.period}
                                                 </div>
-                                                <div>
+                                                <div className="session-details">
                                                     <div className="ticket-period">Period {session.period}</div>
-                                                    <div style={{ fontWeight: 'bold', color: '#0f172a', fontSize: '1.15rem', marginBottom: '0.2rem' }}>
+                                                    <div className="session-title">
                                                         {session.subject}
                                                     </div>
-                                                    <div style={{ color: '#64748b', fontSize: '0.9rem', display: 'flex', gap: '0.75rem' }}>
+                                                    <div style={{ color: '#64748b', fontSize: '0.9rem', display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
                                                         <span>📍 Room {session.roomNumber}</span>
                                                         <span>👥 {session.classYear}</span>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div style={{ textAlign: 'right' }}>
+                                            <div>
                                                 <div style={{
+                                                    display: 'inline-block',
                                                     padding: '0.35rem 0.85rem',
                                                     background: session.type === 'Lab' ? '#f0f9ff' : '#fffbeb',
                                                     borderRadius: '20px',
@@ -497,7 +501,7 @@ const FacultyDashboard = () => {
                             </div>
                         ) : (
                             <div className="table-container">
-                                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                     <thead>
                                         <tr style={{ background: '#f8fafc' }}>
                                             <th style={{ padding: '0.75rem', textAlign: 'center', border: '1px solid #e2e8f0' }}>P / D</th>
@@ -583,7 +587,7 @@ const FacultyDashboard = () => {
 
                     {/* General Query Form */}
                     {newRequest.type === 'query' && (
-                        <div className="card premium-form-card" style={{ padding: '2rem' }}>
+                        <div className="card premium-form-card">
                             <h2 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 <span>✉️</span> Ask a Query
                             </h2>
@@ -609,7 +613,7 @@ const FacultyDashboard = () => {
                                     ]}
                                     required
                                 />
-                                <div className="input-group" style={{ gridColumn: 'span 2' }}>
+                                <div className="input-group" style={{ gridColumn: '1 / -1' }}>
                                     <label className="input-label">Message</label>
                                     <textarea
                                         className="input-field"
@@ -620,7 +624,7 @@ const FacultyDashboard = () => {
                                         required
                                     />
                                 </div>
-                                <button type="submit" className="btn btn-primary-gradient" style={{ gridColumn: 'span 2' }}>
+                                <button type="submit" className="btn btn-primary-gradient" style={{ gridColumn: '1 / -1' }}>
                                     Send Message →
                                 </button>
                             </form>
@@ -643,7 +647,7 @@ const FacultyDashboard = () => {
                         const hasNoClasses = !isWeekend && selectedDayName && assignedPeriodsForDate.length === 0;
 
                         return (
-                            <div className="card premium-form-card" style={{ padding: '2rem' }}>
+                            <div className="card premium-form-card">
                                 <h2 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                     <span>📅</span> Submit Workload Request
                                 </h2>
@@ -734,7 +738,7 @@ const FacultyDashboard = () => {
 
                                     {/* Smart Period Picker — only assigned periods */}
                                     {workloadForm.type === 'SINGLE' && (
-                                        <div className="input-group" style={{ gridColumn: 'span 2' }}>
+                                        <div className="input-group" style={{ gridColumn: '1 / -1' }}>
                                             <CustomSelect
                                                 label="Select Assigned Period"
                                                 placeholder={
@@ -765,7 +769,7 @@ const FacultyDashboard = () => {
                                     {/* Full Day Summary */}
                                     {workloadForm.type === 'FULL_DAY' && assignedPeriodsForDate.length > 0 && (
                                         <div style={{
-                                            gridColumn: 'span 2',
+                                            gridColumn: '1 / -1',
                                             padding: '0.85rem 1rem',
                                             borderRadius: '10px',
                                             background: '#f0f9ff',
@@ -779,7 +783,7 @@ const FacultyDashboard = () => {
                                         </div>
                                     )}
 
-                                    <div className="input-group" style={{ gridColumn: 'span 2' }}>
+                                    <div className="input-group" style={{ gridColumn: '1 / -1' }}>
                                         <CustomSelect
                                             label="Reason"
                                             placeholder="Select Reason"
@@ -805,7 +809,7 @@ const FacultyDashboard = () => {
                                     </div>
 
                                     {workloadForm.reason === 'Other (Specify Reason)' && (
-                                        <div className="input-group" style={{ gridColumn: 'span 2' }}>
+                                        <div className="input-group" style={{ gridColumn: '1 / -1' }}>
                                             <label className="input-label">Specify Reason</label>
                                             <input
                                                 type="text"
@@ -817,7 +821,7 @@ const FacultyDashboard = () => {
                                             />
                                         </div>
                                     )}
-                                    <button type="submit" className="btn btn-primary-gradient" style={{ gridColumn: 'span 2' }}>
+                                    <button type="submit" className="btn btn-primary-gradient" style={{ gridColumn: '1 / -1' }}>
                                         Submit Request →
                                     </button>
                                 </form>
@@ -826,7 +830,7 @@ const FacultyDashboard = () => {
                     })()}
 
                     {/* History Section */}
-                    <div className="card" style={{ padding: '2rem', flex: 1 }}>
+                    <div className="card">
                         <h2 style={{ margin: '0 0 1.5rem 0', fontSize: '1.25rem', color: '#0f172a' }}>History & Status</h2>
 
                         {loading ? (

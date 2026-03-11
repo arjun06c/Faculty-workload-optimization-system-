@@ -27,6 +27,8 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 body {
@@ -427,6 +429,18 @@ tr:last-child td {
   background-color: #f8fafc;
 }
 
+/* Modal Responsive Fixes */
+.modal-overlay {
+  padding: 1rem;
+}
+
+.modal-content {
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
 /* ============================================
    RESPONSIVE UTILITIES & LAYOUTS
    ============================================ */
@@ -434,18 +448,17 @@ tr:last-child td {
 /* Mobile-First Grid System */
 .grid-responsive {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1.5rem;
 }
 
 .dashboard-layout {
   display: grid;
   grid-template-columns: 250px 1fr;
-  /* Sidebar + Content */
   gap: 2rem;
 }
 
-/* For pages without sidebar but side-by-side panels (like AcademicsDashboard) */
+/* For pages without sidebar but side-by-side panels */
 .split-panel-layout {
   display: grid;
   grid-template-columns: 1.4fr 1fr;
@@ -456,9 +469,7 @@ tr:last-child td {
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  /* Default 2 columns */
   gap: 1.5rem;
-  /* Increased gap for better spacing */
 }
 
 .form-grid.three-col {
@@ -470,16 +481,16 @@ tr:last-child td {
   width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  /* Smooth scrolling on iOS */
   border-radius: var(--radius);
   border: 1px solid var(--border);
+  background: var(--surface);
+  margin-bottom: 1rem;
 }
 
 .table-container table {
   margin-bottom: 0;
-  /* Remove potential bottom margin from table */
-  border-collapse: separate;
-  /* Ensure borders render correctly */
+  border-collapse: collapse;
+  width: 100%;
 }
 
 /* Flex Utilities */
@@ -492,6 +503,7 @@ tr:last-child td {
 .flex-gap-1 {
   display: flex;
   gap: 1rem;
+  flex-wrap: wrap;
 }
 
 /* Sticky Sidebar/Panel */
@@ -501,114 +513,108 @@ tr:last-child td {
   top: 2rem;
 }
 
+/* Responsive Image */
+img {
+  max-width: 100%;
+  height: auto;
+}
 
 /* ============================================
-   MEDIA QUERIES
+   MEDIA QUERIES (Breakpoints: 320, 480, 768, 1024, 1280)
    ============================================ */
 
-/* Large Tablets & Small Laptops (max-width: 1024px) */
+/* Extra Large Desktop / TV (min-width: 1281px) */
+@media (min-width: 1281px) {
+  .page-container {
+    max-width: 1400px;
+  }
+}
+
+/* Desktop / Large Laptop (max-width: 1280px) */
+@media (max-width: 1280px) {
+  .page-container {
+    max-width: 1100px;
+    padding: 1.5rem;
+  }
+}
+
+/* Laptop (max-width: 1024px) */
 @media (max-width: 1024px) {
   .page-container {
-    padding: 1.5rem;
     max-width: 95vw;
+    padding: 1.25rem;
   }
 
   .dashboard-layout,
   .split-panel-layout {
     grid-template-columns: 1fr;
-    /* Stack vertically */
   }
 
   .sticky-panel {
     position: static;
-    /* Remove sticky on smaller screens where it might block content */
     max-height: none;
-    /* Allow full height */
   }
 
   .form-grid.three-col {
     grid-template-columns: repeat(2, 1fr);
-    /* 3 cols -> 2 cols */
   }
 }
 
-/* Tablets & Large Mobile (max-width: 768px) */
+/* Tablets (max-width: 768px) */
 @media (max-width: 768px) {
   .page-container {
     padding: 1rem;
   }
 
-  h1 {
-    font-size: 1.5rem;
-  }
-
-  h2 {
-    font-size: 1.25rem;
-  }
-
-  h3 {
-    font-size: 1.1rem;
-  }
+  h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.25rem; }
+  h3 { font-size: 1.1rem; }
 
   .card {
     padding: 1.25rem;
   }
 
-  /* Stack flex containers that should wrap */
   .flex-between-center {
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
   }
 
-  .flex-between-center>* {
+  .flex-between-center > * {
     width: 100%;
   }
 
-  /* Adjust buttons */
   .btn {
     width: 100%;
     justify-content: center;
   }
 
-  /* Form Grids become single column */
   .form-grid,
   .form-grid.three-col {
     grid-template-columns: 1fr;
     gap: 1rem;
   }
 
-  /* Input fields adjustment */
-  .input-group {
-    margin-bottom: 1rem;
-  }
-
-  /* Tables adjustments */
-  th,
-  td {
+  th, td {
     padding: 0.75rem 0.5rem;
     font-size: 0.85rem;
   }
 
-  /* Select Action adjustments */
   .select-action {
     width: 100% !important;
     margin-top: 0.5rem;
   }
 
-  /* Specific Component Fixes */
-  .faculty-header {
-    flex-direction: column !important;
+  /* Components specific fixes */
+  .faculty-profile-card {
+    flex-direction: column;
     text-align: center;
-  }
-
-  .faculty-info {
-    justify-content: center;
-    flex-wrap: wrap;
+    padding: 1.5rem;
+    gap: 1.5rem;
   }
 }
 
-/* Small Mobile (max-width: 480px) */
+/* Large Mobile / Small Tablet (max-width: 480px) */
 @media (max-width: 480px) {
   .page-container {
     padding: 0.75rem;
@@ -618,13 +624,9 @@ tr:last-child td {
     padding: 1rem;
   }
 
-  h1 {
-    font-size: 1.25rem;
-  }
+  h1 { font-size: 1.25rem; }
 
-  /* Even tighter table cells */
-  th,
-  td {
+  th, td {
     padding: 0.5rem 0.25rem;
     font-size: 0.8rem;
   }
@@ -633,7 +635,98 @@ tr:last-child td {
     padding: 0.6rem 1rem;
     font-size: 0.9rem;
   }
+  
+  .input-field {
+    padding: 0.75rem;
+    font-size: 0.95rem;
+  }
+
+  .split-panel-layout {
+    gap: 1.5rem;
+  }
 }
+
+/* Small Mobile (max-width: 320px) */
+@media (max-width: 320px) {
+  .page-container {
+    padding: 0.5rem;
+  }
+
+  .card {
+    padding: 0.75rem;
+  }
+
+  h1 { font-size: 1.1rem; }
+  h2 { font-size: 1rem; }
+  
+  .btn {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+  }
+
+  th, td {
+    padding: 0.4rem 0.2rem;
+    font-size: 0.75rem;
+  }
+}
+
+/* ============================================
+   RESPONSIVE GRID & STACKING (Breakpoints)
+   ============================================ */
+
+/* Desktop & Laptop (above 1024px) */
+@media (min-width: 1025px) {
+  .dashboard-layout {
+    grid-template-columns: 250px 1fr;
+  }
+  .split-panel-layout {
+    grid-template-columns: 1.4fr 1fr;
+  }
+  .form-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .form-grid.three-col {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Tablet (769px - 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .dashboard-layout,
+  .split-panel-layout {
+    grid-template-columns: 1fr;
+  }
+  .form-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .form-grid.three-col {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Mobile (max-width: 768px) */
+@media (max-width: 768px) {
+  .dashboard-layout,
+  .split-panel-layout,
+  .form-grid,
+  .form-grid.three-col {
+    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .input-field,
+  .select-action,
+  .btn,
+  .custom-select-container {
+    width: 100% !important;
+  }
+
+  .split-panel-layout > div {
+    width: 100%;
+  }
+}
+
 
 /* Mesh Gradient Background for Header (unused - light theme active) */
 
@@ -719,6 +812,124 @@ tr:last-child td {
   position: relative;
   overflow: hidden;
   border: none;
+}
+
+/* Faculty Dashboard Specific - Schedule Header */
+.schedule-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.schedule-controls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .schedule-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .schedule-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .schedule-controls .view-toggle {
+    margin-right: 0 !important;
+  }
+
+  .date-picker-input {
+    width: 100% !important;
+  }
+}
+
+/* Ticket Card Styling (Daily View) */
+.ticket-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  border-radius: 16px;
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-left: 4px solid transparent;
+  transition: all 0.2s ease;
+  gap: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+}
+
+.ticket-card:hover {
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.session-info {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  min-width: 0;
+  flex: 1;
+}
+
+.period-display {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.session-details {
+  min-width: 0;
+  flex: 1;
+}
+
+.session-title {
+  font-weight: bold;
+  color: #0f172a;
+  font-size: 1.15rem;
+  margin-bottom: 0.2rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .ticket-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .session-info {
+    width: 100%;
+    gap: 1rem;
+  }
+
+  .session-title {
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .ticket-card > div:last-child {
+    text-align: left !important;
+    width: 100%;
+    border-top: 1px dashed var(--border);
+    padding-top: 0.75rem;
+  }
 }
 
 .faculty-profile-card::after {
@@ -827,5 +1038,87 @@ tr:last-child td {
     width: 100%;
     justify-content: center;
     margin-top: 0.5rem;
+  }
+}
+
+/* ============================================
+   RESPONSIVE DROPDOWN FIXES
+   ============================================ */
+
+/* Text Wrapping & Overflow Handling for Dropdowns */
+.option-title,
+.option-subtitle,
+.trigger-label,
+.trigger-sublabel {
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.custom-select-trigger .trigger-content {
+  white-space: normal;
+  word-wrap: break-word;
+  overflow: hidden;
+}
+
+/* Proper z-index and container sizing */
+.custom-select-options {
+  z-index: 9999;
+  max-width: 100vw;
+  box-sizing: border-box;
+}
+
+/* Base Dropdown responsiveness */
+.custom-select-container {
+  width: 100%;
+  max-width: 100%;
+}
+
+select.input-field,
+.custom-select-trigger {
+  width: 100%;
+  max-width: 100%;
+}
+
+@media (max-width: 768px) {
+  .custom-select-options {
+    max-height: 250px;
+    padding: 6px;
+  }
+  
+  .custom-select-option {
+    padding: 10px 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .custom-select-options {
+    max-height: 220px;
+    padding: 4px;
+  }
+  
+  .custom-select-option {
+    padding: 8px 10px;
+    gap: 4px;
+  }
+  
+  .option-title {
+    font-size: 0.9rem;
+    line-height: 1.3;
+  }
+  
+  .option-subtitle {
+    font-size: 0.75rem;
+    line-height: 1.3;
+  }
+
+  .custom-select-trigger {
+    padding: 0.75rem 1rem;
+    gap: 0.5rem;
+  }
+  
+  select.input-field {
+    padding: 0.75rem 1rem;
+    padding-right: 2.5rem;
   }
 }

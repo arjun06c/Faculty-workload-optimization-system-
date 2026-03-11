@@ -88,7 +88,8 @@ const Login = () => {
                     <img
                         src={bitLogo}
                         alt="BIT Logo"
-                        className="h-28 w-auto object-contain"
+                        style={{ height: '150px', width: 'auto' }}
+                        className="object-contain"
                         onError={(e) => {
                             e.target.src = 'https://upload.wikimedia.org/wikipedia/en/b/b5/Bannari_Amman_Institute_of_Technology_logo.png';
                         }}

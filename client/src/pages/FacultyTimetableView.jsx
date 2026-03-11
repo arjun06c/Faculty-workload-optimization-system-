@@ -24,7 +24,7 @@ const FacultyTimetableView = () => {
             // but the current controller requires fetching all or we could assume the ID is enough.
             // Let's stick to fetching the specific faculty from the list for now.
             const facultyRes = await api.get('/admin/faculty');
-            const currentFaculty = facultyRes.data.find(f => f._id === id);
+            const currentFaculty = facultyRes.data.find(f => String(f._id) === String(id) || String(f.id) === String(id));
             setFaculty(currentFaculty);
 
             // Fetch ALL timetable entries for this faculty to fill the weekly grid
@@ -75,8 +75,14 @@ const FacultyTimetableView = () => {
         });
     };
 
-    // Removed early block to allow immediate layout render
-    if (!loading && !faculty) return <div className="page-container">Faculty not found.</div>;
+    if (!loading && !faculty) return (
+        <div className="page-container" style={{ padding: '2rem', textAlign: 'center' }}>
+            <h2 style={{ color: '#64748b' }}>Faculty not found.</h2>
+            <button className="btn btn-primary" onClick={() => navigate('/academic/dashboard')}>
+                Return to Dashboard
+            </button>
+        </div>
+    );
 
     const currentHours = faculty?.currentHours || 0;
     const maxHours = faculty?.maxHours || 16;

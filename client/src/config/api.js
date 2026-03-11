@@ -4,6 +4,6 @@
 // To switch environments, change BASE_URL below — no other file needs editing.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const BASE_URL = "https://faculty-workload-optimization-systems.onrender.com";
+export const BASE_URL = "https://faculty-workload-optimization-system06.onrender.com";
 
 export default BASE_URL;

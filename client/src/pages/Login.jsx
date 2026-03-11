@@ -34,7 +34,7 @@ const Login = () => {
                     handleRedirect(res.role);
                 }
             } else {
-                setError(res.error || 'Login failed. Please check your email and password.');
+                setError(res.error || 'Authentication failed. Please verify your details.');
             }
         } catch (err) {
             console.error('Login submit error:', err);

@@ -42,7 +42,8 @@ export const AuthProvider = ({ children }) => {
             return { success: true, role: res.data.role };
         } catch (error) {
             console.error("Login failed", error.response?.data);
-            return { success: false, error: error.response?.data?.msg || 'Login failed' };
+            const errorMsg = error.response?.data?.msg || error.response?.data?.message || 'Login failed. Please check your credentials.';
+            return { success: false, error: errorMsg };
         }
     };
 
@@ -56,10 +57,10 @@ export const AuthProvider = ({ children }) => {
             return { success: true, role: res.data.role };
         } catch (error) {
             console.error("Google Login failed", error.response?.data);
-            return { 
-                success: false, 
-                error: error.response?.status === 401 ? 'Unauthorized user' : (error.response?.data?.msg || 'Google Login failed') 
-            };
+            const errorMsg = error.response?.status === 401 
+                ? 'Your account is not registered. Please contact the administrator.' 
+                : (error.response?.data?.msg || error.response?.data?.message || 'Google Login failed');
+            return { success: false, error: errorMsg };
         }
     };
 
@@ -73,7 +74,8 @@ export const AuthProvider = ({ children }) => {
             return { success: true };
         } catch (error) {
             console.error("Admin Login failed", error.response?.data);
-            return { success: false, error: error.response?.data?.msg || 'Admin Login failed' };
+            const errorMsg = error.response?.data?.msg || error.response?.data?.message || 'Admin authentication failed.';
+            return { success: false, error: errorMsg };
         }
     };
 
